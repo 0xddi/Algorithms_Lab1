@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Algorithms.GUI", "Algorithms.GUI\Algorithms.GUI.csproj", "{5B6CBDBE-6623-4D7C-9609-39A6D4F53C93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Algorithms.Core", "Algorithms.Core\Algorithms.Core.csproj", "{0B08C01B-CB44-4E1B-B753-9CB01A8E11E1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5B6CBDBE-6623-4D7C-9609-39A6D4F53C93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B6CBDBE-6623-4D7C-9609-39A6D4F53C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B6CBDBE-6623-4D7C-9609-39A6D4F53C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B6CBDBE-6623-4D7C-9609-39A6D4F53C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B08C01B-CB44-4E1B-B753-9CB01A8E11E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B08C01B-CB44-4E1B-B753-9CB01A8E11E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B08C01B-CB44-4E1B-B753-9CB01A8E11E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B08C01B-CB44-4E1B-B753-9CB01A8E11E1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
