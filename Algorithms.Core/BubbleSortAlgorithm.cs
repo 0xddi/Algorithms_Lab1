@@ -10,10 +10,16 @@ public sealed class BubbleSortAlgorithm : Algorithm<int[]>
     /// <inheritdoc />
     public override string Name => "Bubble Sort";
 
+    /// <inheritdoc />
+    public override TimeComplexity Complexity => TimeComplexity.Quadratic;
+
     /// <summary>
-    /// Инициализирует новый экземпляр класса <see cref="BubbleSortAlgorithm"/>.
+    /// Инициализирует алгоритм сортировки переданным массивом.
     /// </summary>
-    public BubbleSortAlgorithm() : base(TimeComplexity.Quadratic) { }
+    /// <param name="data">Массив, который нужно отсортировать.</param>
+    public BubbleSortAlgorithm(int[] data) : base(data) 
+    { 
+    }
 
     /// <inheritdoc />
     protected override void ExecuteCore(int[] array)
@@ -34,12 +40,13 @@ public sealed class BubbleSortAlgorithm : Algorithm<int[]>
     /// <inheritdoc />
     protected override int[] CloneInput(int[] input)
     {
+        // Для одномерных массивов значимых типов (int, double) .Clone() делает точную изолированную копию.
         return (int[])input.Clone();
     }
 
     /// <inheritdoc />
     public override string GetDescription()
     {
-        return "Простая сортировка сравнением. Итерируется по массива, меняя местами соседние элементы, находящиеся в неправильном порядке.";
+        return "Простая сортировка сравнением. Итерируется по массиву, меняя местами соседние элементы, находящиеся в неправильном порядке.";
     }
 }
