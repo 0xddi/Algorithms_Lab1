@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Algorithms.Core;
 
@@ -7,13 +6,13 @@ namespace Algorithms.Core;
 /// Абстрактный базовый класс для алгоритмов и математических функций.
 /// Хранит исходные данные и предоставляет встроенную инфраструктуру для замера времени выполнения.
 /// </summary>
-/// <typeparam name="TInput">Тип входных данных для алгоритма (например, int[], double[] или (int[,], int[,])).</typeparam>
+/// <typeparam name="TInput">Тип входных данных для алгоритма (например, int[], double[] и т.д.).</typeparam>
 public abstract class Algorithm<TInput>
 {
     /// <summary>
     /// Ссылка на исходные немодифицированные данные, переданные при создании.
     /// </summary>
-    protected TInput Data { get; }
+    private TInput Data { get; }
 
     /// <summary>
     /// Человекочитаемое название алгоритма (например, "Bubble Sort" или "Метод Горнера").
