@@ -4,12 +4,12 @@
 /// Простой алгоритм возведения в степень последовательным умножением.
 /// Соответствует блок-схеме "Рис. 1".
 /// </summary>
-public sealed class SimplePowerAlgorithm : Algorithm<(double x, int n)>
+public sealed class SimplePowAlgorithm : Algorithm<(double x, int n)>
 {
     public override string Name => "Простое возведение в степень";
     public override TimeComplexity Complexity => TimeComplexity.Linear;
 
-    public SimplePowerAlgorithm((double x, int n) data) : base(data) { }
+    public SimplePowAlgorithm((double x, int n) data) : base(data) { }
 
     protected override void ExecuteCore((double x, int n) input)
     {
