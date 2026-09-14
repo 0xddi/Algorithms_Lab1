@@ -1,22 +1,18 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Algorithms.GUI.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         x:Class="Algorithms.GUI.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Algorithms.GUI">
+        Title="Бенчмарк Алгоритмов" Width="1000" Height="700">
+    
+    <Grid RowDefinitions="Auto,*">
+        <!-- Панель управления -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="10">
+            <Button Name="RunButton" Content="Запустить вычисления" Click="RunButton_Click"/>
+            <ProgressBar Name="ProgressIndicator" IsIndeterminate="True" IsVisible="False" Width="150" VerticalAlignment="Center"/>
+            <TextBlock Name="StatusText" Text="Ожидание запуска..." VerticalAlignment="Center"/>
+        </StackPanel>
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
-
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
-
+        <!-- График ScottPlot -->
+        <ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="1" Margin="10"/>
+    </Grid>
 </Window>
