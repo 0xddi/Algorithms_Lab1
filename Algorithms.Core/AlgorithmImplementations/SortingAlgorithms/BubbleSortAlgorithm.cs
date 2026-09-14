@@ -5,7 +5,7 @@ namespace Algorithms.Core;
 /// <summary>
 /// Реализация алгоритма сортировки пузырьком для целочисленного массива.
 /// </summary>
-public sealed class BubbleSortAlgorithm : Algorithm<int[]>
+public sealed class BubbleSortAlgorithm : Algorithm<double[]>
 {
     /// <inheritdoc />
     public override string Name => "Bubble Sort";
@@ -17,12 +17,12 @@ public sealed class BubbleSortAlgorithm : Algorithm<int[]>
     /// Инициализирует алгоритм сортировки переданным массивом.
     /// </summary>
     /// <param name="data">Массив, который нужно отсортировать.</param>
-    public BubbleSortAlgorithm(int[] data) : base(data) 
+    public BubbleSortAlgorithm(double[] data) : base(data) 
     { 
     }
 
     /// <inheritdoc />
-    protected override void ExecuteCore(int[] array)
+    protected override void ExecuteCore(double[] array)
     {
         int n = array.Length;
         for (int i = 0; i < n - 1; i++)
@@ -38,10 +38,10 @@ public sealed class BubbleSortAlgorithm : Algorithm<int[]>
     }
 
     /// <inheritdoc />
-    protected override int[] CloneInput(int[] input)
+    protected override double[] CloneInput(double[] input)
     {
         // Для одномерных массивов значимых типов (int, double) .Clone() делает точную изолированную копию.
-        return (int[])input.Clone();
+        return (double[])input.Clone();
     }
 
     /// <inheritdoc />

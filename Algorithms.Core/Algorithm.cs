@@ -75,7 +75,7 @@ public abstract class Algorithm<TInput>
     /// <param name="benchCycles">Количество прогонов для усреднения (по умолчанию 5).</param>
     /// <returns>Среднее время выполнения алгоритма.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Вызывается, если количество прогонов меньше или равно 0.</exception>
-    public TimeSpan RunBench(int benchCycles)
+    public double RunBench(int benchCycles)
     {
         if (benchCycles <= 0)
         {
@@ -86,20 +86,21 @@ public abstract class Algorithm<TInput>
         TInput warmupData = CloneInput(Data);
         ExecuteCore(warmupData);
 
-        long totalTicks = 0;
+        double totalSeconds = 0;
 
         for (int i = 0; i < benchCycles; i++)
         {
-            // Каждый прогон цикла получает чистую копию данных
             TInput isolatedInput = CloneInput(Data);
 
-            var stopwatch = Stopwatch.StartNew();
+            long start = Stopwatch.GetTimestamp();
             ExecuteCore(isolatedInput);
-            stopwatch.Stop();
+            long end = Stopwatch.GetTimestamp();
 
-            totalTicks += stopwatch.ElapsedTicks;
+            // Считаем точное время прогона в секундах
+            totalSeconds += (double)(end - start) / Stopwatch.Frequency;
         }
 
-        return TimeSpan.FromTicks(totalTicks / benchCycles);
+        // Возвращаем среднее время в миллисекундах
+        return (totalSeconds / benchCycles) * 1000.0;
     }
 }
