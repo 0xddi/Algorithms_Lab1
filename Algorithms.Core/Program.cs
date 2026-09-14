@@ -58,6 +58,6 @@ class Program
         // Запуск и вывод результатов
         // ==========================================
         bench.Run();
-        bench.PrintResults();
+        bench.DebugPrintResults();
     }
 }   

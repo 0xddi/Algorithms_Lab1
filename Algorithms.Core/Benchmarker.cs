@@ -45,7 +45,7 @@ public class Benchmarker
         }
     }
 
-    public void PrintResults()
+    public void DebugPrintResults()
     {
         foreach (var task in Tasks)
         {
