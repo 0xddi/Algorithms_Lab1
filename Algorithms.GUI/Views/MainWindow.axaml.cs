@@ -8,6 +8,7 @@ using Algorithms.Core;
 using Algorithms.Core.MathFunctions;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
+using Avalonia; 
 
 namespace Algorithms.GUI.Views;
 
@@ -34,7 +35,7 @@ public partial class MainWindow : Window
 
     private void InitializeBenchmarker()
     {
-        // Мастер-массив — 100 000 хватит для всех сеток ниже.
+        // Мастер-массив — 500 000 хватит для всех сеток ниже.
         double[] numbers = new double[500_000];
         for (int i = 0; i < numbers.Length; i++)
         {
@@ -47,19 +48,10 @@ public partial class MainWindow : Window
         // Сетки — с постоянным шагом, чтобы линии были гладкими
         // ==========================================
 
-        // O(n^2): 100..2000 шаг 50 → 39 точек
         int[] quadraticSizes = Range(1, 2_000, 25);
-
-        // O(n log n): 500..20000 шаг 500 → 40 точек
         int[] linearithmicSizes = Range(1, 20_000, 250);
-
-        // O(n): 1000..100000 шаг 2000 → 50 точек
         int[] linearSizes = Range(1, 500_000, 1_000);
-
-        // O(log n) и O(1): тот же диапазон, но точек столько же — гладкая кривая
         int[] logSizes = Range(1, 500_000, 1_000);
-
-        // Для тяжёлых (рекурсия, наивный полином, простой pow): 50..2000 шаг 50
         int[] tinySizes = Range(1, 2_000, 25);
 
         const double baseX = 1.5;
@@ -100,7 +92,7 @@ public partial class MainWindow : Window
         // ==========================================
         _benchmarker.AddTask(new BenchmarkTask("Naive Polynomial",
             slice => new NaivePolynomialAlgorithm(slice).RunBench(cycles),
-            tinySizes));   // O(n^2) — только маленькие N
+            tinySizes));
 
         _benchmarker.AddTask(new BenchmarkTask("Horner Polynomial",
             slice => new HornerPolynomialAlgorithm(slice).RunBench(cycles),
@@ -139,40 +131,42 @@ public partial class MainWindow : Window
         ProgressIndicator.IsVisible = true;
         StatusText.Text = "Выполняются замеры. Пожалуйста, подождите...";
 
-        AvaPlot1.Plot.Clear();
-
         await Task.Run(() =>
         {
             _benchmarker.Run(benchCycles: 3);
         });
 
-        RenderCharts();
+        OpenChartWindows();
 
         RunButton.IsEnabled = true;
         ProgressIndicator.IsVisible = false;
-        StatusText.Text = "Вычисления завершены!";
+        StatusText.Text = "Вычисления завершены! Открыто окон: " + _benchmarker.Tasks.Count;
     }
 
-    private void RenderCharts()
+    /// <summary>
+    /// Открывает по одному окну с графиком для каждого алгоритма.
+    /// </summary>
+    private void OpenChartWindows()
     {
+        // Немного смещаем окна, чтобы они не накладывались друг на друга идеально
+        int offset = 0;
+
         foreach (var task in _benchmarker.Tasks)
         {
             if (task.Results.Count == 0)
                 continue;
 
-            double[] xs = task.Results.Select(r => (double)r.N).ToArray();
-            double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+            var window = new ChartWindow(task)
+            {
+                Position = new PixelPoint(
+                    this.Position.X + 40 + offset,
+                    this.Position.Y + 40 + offset)
+            };
 
-            var scatter = AvaPlot1.Plot.Add.ScatterLine(xs, ys);
-            scatter.LegendText = task.Name;
-            scatter.LineWidth = 2;
+            // Show — окна не модальные, можно смотреть все сразу
+            window.Show(this);
+
+            offset += 30;
         }
-
-        AvaPlot1.Plot.Title("Асимптотическая сложность алгоритмов");
-        AvaPlot1.Plot.XLabel("Размер массива (N)");
-        AvaPlot1.Plot.YLabel("Время выполнения (мс)");
-        AvaPlot1.Plot.ShowLegend();
-        AvaPlot1.Plot.Axes.AutoScale();
-        AvaPlot1.Refresh();
     }
 }
