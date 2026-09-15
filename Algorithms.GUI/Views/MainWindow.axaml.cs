@@ -66,6 +66,9 @@ public partial class MainWindow : Window
 
         _benchmarker.AddTask(new BenchmarkTask("Classic Fast Pow", 
             slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
+        
+        _benchmarker.AddTask(new BenchmarkTask("Aho-Corasick", 
+            slice => new AhoCorasickAlgorithm(slice).RunBench(5)));
     }
 
     private async void RunButton_Click(object? sender, RoutedEventArgs e)
