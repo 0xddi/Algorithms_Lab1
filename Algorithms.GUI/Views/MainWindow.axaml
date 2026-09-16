@@ -1,18 +1,15 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         x:Class="Algorithms.GUI.Views.MainWindow"
-        Title="Бенчмарк Алгоритмов" Width="1000" Height="700">
+        Title="Бенчмарк Алгоритмов" Width="600" Height="200">
     
     <Grid RowDefinitions="Auto,*">
         <!-- Панель управления -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="10">
             <Button Name="RunButton" Content="Запустить вычисления" Click="RunButton_Click"/>
-            <ProgressBar Name="ProgressIndicator" IsIndeterminate="True" IsVisible="False" Width="150" VerticalAlignment="Center"/>
+            <ProgressBar Name="ProgressIndicator" IsIndeterminate="True" IsVisible="False"
+                         Width="150" VerticalAlignment="Center"/>
             <TextBlock Name="StatusText" Text="Ожидание запуска..." VerticalAlignment="Center"/>
         </StackPanel>
-
-        <!-- График ScottPlot -->
-        <ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="1" Margin="10"/>
     </Grid>
 </Window>
