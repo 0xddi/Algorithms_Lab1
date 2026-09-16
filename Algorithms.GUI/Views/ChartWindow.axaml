@@ -1,7 +1,0 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
-        x:Class="Algorithms.GUI.Views.ChartWindow"
-        Title="График алгоритма" Width="900" Height="600">
-    <ScottPlot:AvaPlot Name="AvaPlot1" Margin="10"/>
-</Window>

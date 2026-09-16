@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -8,7 +7,6 @@ using Algorithms.Core;
 using Algorithms.Core.MathFunctions;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
-using Avalonia; 
 
 namespace Algorithms.GUI.Views;
 
@@ -22,21 +20,9 @@ public partial class MainWindow : Window
         InitializeBenchmarker();
     }
 
-    /// <summary>
-    /// Возвращает набор чисел от start до end с постоянным шагом step.
-    /// </summary>
-    private static int[] Range(int start, int end, int step)
-    {
-        var list = new List<int>();
-        for (int v = start; v <= end; v += step)
-            list.Add(v);
-        return list.ToArray();
-    }
-
     private void InitializeBenchmarker()
     {
-        // Мастер-массив — 500 000 хватит для всех сеток ниже.
-        double[] numbers = new double[500_000];
+        double[] numbers = new double[2000];
         for (int i = 0; i < numbers.Length; i++)
         {
             numbers[i] = Random.Shared.NextDouble() * 100.0;
@@ -45,84 +31,41 @@ public partial class MainWindow : Window
         _benchmarker = new Benchmarker(numbers);
 
         // ==========================================
-        // Сетки — с постоянным шагом, чтобы линии были гладкими
+        // 1. Сортировки (SortingAlgorithms)
         // ==========================================
+        _benchmarker.AddTask(new BenchmarkTask("Bubble Sort", slice => new BubbleSortAlgorithm(slice).RunBench(5)));
+        _benchmarker.AddTask(new BenchmarkTask("Quick Sort", slice => new QuickSortAlgorithm(slice).RunBench(5)));
+        _benchmarker.AddTask(new BenchmarkTask("Tim Sort", slice => new TimSortAlgorithm(slice).RunBench(5)));
 
-        int[] quadraticSizes = Range(1, 2_000, 25);
-        int[] linearithmicSizes = Range(1, 20_000, 250);
-        int[] linearSizes = Range(1, 500_000, 1_000);
-        int[] logSizes = Range(1, 500_000, 1_000);
-        int[] tinySizes = Range(1, 2_000, 25);
+        // ==========================================
+        // 2. Математические функции над вектором (MathFunctionAlgorithms)
+        // ==========================================
+        _benchmarker.AddTask(new BenchmarkTask("Constant Function f(v)=1", slice => new ConstantFunctionAlgorithm(slice).RunBench(5)));
+        _benchmarker.AddTask(new BenchmarkTask("Sum Algorithm", slice => new SumAlgorithm(slice).RunBench(5)));
+        _benchmarker.AddTask(new BenchmarkTask("Product Algorithm", slice => new ProductAlgorithm(slice).RunBench(5)));
 
+        // ==========================================
+        // 3. Вычисление полиномов при x = 1.5 (PolynomialAlgorithms)
+        // ==========================================
+        _benchmarker.AddTask(new BenchmarkTask("Naive Polynomial", slice => new NaivePolynomialAlgorithm(slice).RunBench(5)));
+        _benchmarker.AddTask(new BenchmarkTask("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5)));
+
+        // ==========================================
+        // 4. Возведение в степень x^n (PowFunctionAlgorithms)
+        // ==========================================
         const double baseX = 1.5;
-        const int cycles = 3;
 
-        // ==========================================
-        // 1. Сортировки
-        // ==========================================
-        _benchmarker.AddTask(new BenchmarkTask("Bubble Sort",
-            slice => new BubbleSortAlgorithm(slice).RunBench(cycles),
-            quadraticSizes));
+        _benchmarker.AddTask(new BenchmarkTask("Simple Pow (x^n)", 
+            slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        _benchmarker.AddTask(new BenchmarkTask("Quick Sort",
-            slice => new QuickSortAlgorithm(slice).RunBench(cycles),
-            linearithmicSizes));
+        _benchmarker.AddTask(new BenchmarkTask("Recursive Pow", 
+            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        _benchmarker.AddTask(new BenchmarkTask("Tim Sort",
-            slice => new TimSortAlgorithm(slice).RunBench(cycles),
-            linearithmicSizes));
+        _benchmarker.AddTask(new BenchmarkTask("Fast Pow", 
+            slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        // ==========================================
-        // 2. Матфункции
-        // ==========================================
-        _benchmarker.AddTask(new BenchmarkTask("Constant Function f(v)=1",
-            slice => new ConstantFunctionAlgorithm(slice).RunBench(cycles),
-            linearSizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Sum Algorithm",
-            slice => new SumAlgorithm(slice).RunBench(cycles),
-            linearSizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Product Algorithm",
-            slice => new ProductAlgorithm(slice).RunBench(cycles),
-            linearSizes));
-
-        // ==========================================
-        // 3. Полиномы
-        // ==========================================
-        _benchmarker.AddTask(new BenchmarkTask("Naive Polynomial",
-            slice => new NaivePolynomialAlgorithm(slice).RunBench(cycles),
-            tinySizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Horner Polynomial",
-            slice => new HornerPolynomialAlgorithm(slice).RunBench(cycles),
-            linearSizes));
-
-        // ==========================================
-        // 4. Возведение в степень
-        // ==========================================
-        _benchmarker.AddTask(new BenchmarkTask("Simple Pow (x^n)",
-            slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(cycles),
-            tinySizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Recursive Pow",
-            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(cycles),
-            tinySizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Fast Pow",
-            slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(cycles),
-            logSizes));
-
-        _benchmarker.AddTask(new BenchmarkTask("Classic Fast Pow",
-            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(cycles),
-            logSizes));
-
-        // ==========================================
-        // 5. Ахо-Корасик
-        // ==========================================
-        _benchmarker.AddTask(new BenchmarkTask("Aho-Corasick",
-            slice => new AhoCorasickAlgorithm(slice).RunBench(cycles),
-            linearSizes));
+        _benchmarker.AddTask(new BenchmarkTask("Classic Fast Pow", 
+            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
     }
 
     private async void RunButton_Click(object? sender, RoutedEventArgs e)
@@ -130,43 +73,39 @@ public partial class MainWindow : Window
         RunButton.IsEnabled = false;
         ProgressIndicator.IsVisible = true;
         StatusText.Text = "Выполняются замеры. Пожалуйста, подождите...";
+        
+        AvaPlot1.Plot.Clear();
 
-        await Task.Run(() =>
+        await Task.Run(() => 
         {
-            _benchmarker.Run(benchCycles: 3);
+            _benchmarker.Run(benchCycles: 5);
         });
 
-        OpenChartWindows();
+        RenderCharts();
 
         RunButton.IsEnabled = true;
         ProgressIndicator.IsVisible = false;
-        StatusText.Text = "Вычисления завершены! Открыто окон: " + _benchmarker.Tasks.Count;
+        StatusText.Text = "Вычисления завершены!";
     }
 
-    /// <summary>
-    /// Открывает по одному окну с графиком для каждого алгоритма.
-    /// </summary>
-    private void OpenChartWindows()
+    private void RenderCharts()
     {
-        // Немного смещаем окна, чтобы они не накладывались друг на друга идеально
-        int offset = 0;
-
         foreach (var task in _benchmarker.Tasks)
         {
-            if (task.Results.Count == 0)
-                continue;
+            double[] xs = task.Results.Select(r => (double)r.N).ToArray();
+            double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
 
-            var window = new ChartWindow(task)
-            {
-                Position = new PixelPoint(
-                    this.Position.X + 40 + offset,
-                    this.Position.Y + 40 + offset)
-            };
-
-            // Show — окна не модальные, можно смотреть все сразу
-            window.Show(this);
-
-            offset += 30;
+            var scatter = AvaPlot1.Plot.Add.ScatterLine(xs, ys);
+            scatter.LegendText = task.Name;
+            scatter.LineWidth = 2;
         }
+
+        AvaPlot1.Plot.Title("Асимптотическая сложность алгоритмов");
+        AvaPlot1.Plot.XLabel("Размер массива (N)");
+        AvaPlot1.Plot.YLabel("Время выполнения (мс)");
+        AvaPlot1.Plot.ShowLegend();
+
+        AvaPlot1.Plot.Axes.AutoScale();
+        AvaPlot1.Refresh();
     }
 }

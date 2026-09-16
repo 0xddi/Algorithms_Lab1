@@ -53,10 +53,6 @@ class Program
 
         bench.AddTask(new BenchmarkTask("Classic Fast Pow", 
             slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
-        
-        bench.AddTask(new BenchmarkTask("Aho-Corasick", 
-            slice => new AhoCorasickAlgorithm(slice).RunBench(5)));
-        
 
         // ==========================================
         // Запуск и вывод результатов
