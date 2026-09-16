@@ -1,18 +1,118 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Algorithms.GUI"
         xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         x:Class="Algorithms.GUI.Views.MainWindow"
-        Title="Бенчмарк Алгоритмов" Width="1000" Height="700">
-    
-    <Grid RowDefinitions="Auto,*">
-        <!-- Панель управления -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="10">
-            <Button Name="RunButton" Content="Запустить вычисления" Click="RunButton_Click"/>
-            <ProgressBar Name="ProgressIndicator" IsIndeterminate="True" IsVisible="False" Width="150" VerticalAlignment="Center"/>
-            <TextBlock Name="StatusText" Text="Ожидание запуска..." VerticalAlignment="Center"/>
-        </StackPanel>
+        x:CompileBindings="False"
+        Title="Бенчмарк Алгоритмов" Width="1380" Height="900"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="Full"
+        CanResize="True"
+        RequestedThemeVariant="Dark">
 
-        <!-- График ScottPlot -->
-        <ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="1" Margin="10"/>
+    <Window.Resources>
+        <!-- Переопределение системного цвета акцента (радиокнопки, галочки, фокусы) -->
+        <Color x:Key="SystemAccentColor">#009688</Color>
+    </Window.Resources>
+    
+    <Window.Background>
+        <SolidColorBrush Color="#121212"/>
+    </Window.Background>
+    
+    <Grid ColumnDefinitions="380, *">
+        
+        <!-- ЛЕВАЯ ПАНЕЛЬ: НАСТРОЙКИ -->
+        <Border Grid.Column="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,1,0" Padding="15">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="20">
+                    
+                    <TextBlock Text="Настройки бенчмарка" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    
+                    <!-- 1. Настройка Range данных -->
+                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Входные данные для сортировки" FontWeight="SemiBold" Foreground="#E0E0E0"/>
+                            
+                            <RadioButton Name="RangeDataRadio" Content="По диапазону (Start, End, Step)" IsChecked="True"/>
+                            <StackPanel IsEnabled="{Binding #RangeDataRadio.IsChecked}" Orientation="Horizontal" Spacing="5" Margin="20,0,0,10">
+                                <TextBox Name="StartValBox" Watermark="0" Text="0" Width="90"/>
+                                <TextBox Name="EndValBox" Watermark="1000" Text="1000" Width="90"/>
+                                <TextBox Name="StepValBox" Watermark="10" Text="10" Width="90"/>
+                            </StackPanel>
+
+                            <RadioButton Name="RandomDataRadio" Content="Случайные значения"/> 
+                            <StackPanel IsEnabled="{Binding #RandomDataRadio.IsChecked}" Margin="20,0,0,0">
+                                <TextBox Name="CountValBox" Watermark="2000" Text="2000" Width="280" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 2. Выбор алгоритмов -->
+                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Алгоритмы для запуска" FontWeight="SemiBold" Foreground="#E0E0E0"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Выбрать все" Click="SelectAll_Click" Width="135" HorizontalContentAlignment="Center"/>
+                                <Button Content="Снять все" Click="DeselectAll_Click" Width="135" HorizontalContentAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <ItemsControl Name="AlgorithmsList" Margin="0,5,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:AlgorithmTaskItem">
+                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5,2,15,2"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 3. Управление запуском -->
+                    <StackPanel Spacing="10" Margin="0,10,0,0">
+                        <Button Name="RunButton" Content="Запустить вычисления" Click="RunButton_Click" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" 
+                                Background="#009688" Foreground="White" FontSize="16" Height="45"/>
+                        <ProgressBar Name="ProgressIndicator" IsIndeterminate="True" IsVisible="False" Height="4"/>
+                        <TextBlock Name="StatusText" Text="Ожидание запуска..." Foreground="#AAAAAA" TextWrapping="Wrap"/>
+                        <!-- Управление кэшем и историей -->
+                        <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True" Foreground="#CCCCCC"/>
+                        <Button Name="CompareHistoryButton" Content="Сравнить историю из БД" Click="CompareHistoryButton_Click" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30"/>
+                    </StackPanel>
+                    
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: ГРАФИКИ -->
+        <Grid Grid.Column="1" RowDefinitions="Auto, *">
+            
+            <!-- Панель управления масштабированием -->
+            <Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="10">
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Управление масштабом:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="#FFFFFF"/>
+                    
+                    <TextBlock Text="Ось X:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#CCCCCC"/>
+                    <Button Content="+" Click="ZoomInX_Click" Margin="0,0,5,0" Width="30" HorizontalContentAlignment="Center"/>
+                    <Button Content="-" Click="ZoomOutX_Click" Margin="0,0,15,0" Width="30" HorizontalContentAlignment="Center"/>
+                    
+                    <TextBlock Text="Ось Y:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#CCCCCC"/>
+                    <Button Content="+" Click="ZoomInY_Click" Margin="0,0,5,0" Width="30" HorizontalContentAlignment="Center"/>
+                    <Button Content="-" Click="ZoomOutY_Click" Margin="0,0,15,0" Width="30" HorizontalContentAlignment="Center"/>
+                    
+                    <Button Content="Сбросить масштаб" Click="ResetZoom_Click"/>
+                </WrapPanel>
+            </Border>
+
+            <!-- Область графиков -->
+            <ScrollViewer Grid.Row="1" Margin="10">
+                <WrapPanel Name="PlotsPanel" Orientation="Horizontal" HorizontalAlignment="Left" />
+            </ScrollViewer>
+            
+        </Grid>
     </Grid>
 </Window>

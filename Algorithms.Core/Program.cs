@@ -54,10 +54,5 @@ class Program
         bench.AddTask(new BenchmarkTask("Classic Fast Pow", 
             slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        // ==========================================
-        // Запуск и вывод результатов
-        // ==========================================
-        bench.Run();
-        bench.DebugPrintResults();
     }
 }   
