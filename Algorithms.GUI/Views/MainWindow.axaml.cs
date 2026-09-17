@@ -8,18 +8,21 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Algorithms.Core;
+using Algorithms.Core.Database;
 using Algorithms.Core.MathFunctions;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
+using Algorithms.GUI.Models;
 using ScottPlot.Avalonia;
 
 namespace Algorithms.GUI.Views;
 
 public partial class MainWindow : Window
 {
-    private Benchmarker _benchmarker;
+    private Benchmarker? _benchmarker;
     private readonly List<AvaPlot> _activePlots = new(); 
     
+    public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
 
     public MainWindow()
@@ -151,7 +154,6 @@ public partial class MainWindow : Window
 
             var plotControl = new AvaPlot { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
             
-            // Настройка тёмной темы для ScottPlot
             plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
             plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
@@ -161,9 +163,9 @@ public partial class MainWindow : Window
 
             if (xs.Length > 0 && ys.Length > 0)
             {
-                var scatter = plotControl.Plot.Add.ScatterLine(xs, ys);
+                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
-                scatter.Color = ScottPlot.Color.FromHex("#009688"); // Яркий бирюзовый цвет линии
+                scatter.Color = ScottPlot.Color.FromHex("#009688");
                 plotControl.Plot.Axes.AutoScale();
             }
 
@@ -212,56 +214,79 @@ public partial class MainWindow : Window
     }
     
     private void CompareHistoryButton_Click(object? sender, RoutedEventArgs e)
-{
-    PlotsPanel.Children.Clear();
-    _activePlots.Clear();
-
-    using var db = new Algorithms.Core.Database.AppDbContext();
-    
-    // Получаем уникальные алгоритмы, которые запускались ранее
-    var historyAlgorithms = db.Results.Select(r => r.AlgorithmName).Distinct().ToList();
-
-    foreach (var algoName in historyAlgorithms)
     {
-        // Группируем по дате эксперимента
-        var sessions = db.Results
-            .Where(r => r.AlgorithmName == algoName)
-            .OrderBy(r => r.N)
-            .ToList()
-            .GroupBy(r => r.ExperimentDate.ToString("g"))
-            .ToList();
-
-        if (!sessions.Any()) continue;
-
-        var border = new Border { /* ... Те же настройки, что и в RenderIndividualCharts ... */ };
-        var plotControl = new AvaPlot { HorizontalAlignment = HorizontalAlignment.Stretch };
-        
-        plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-        plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
-
-        // Рисуем линию для каждой исторической сессии
-        foreach (var session in sessions)
-        {
-            double[] xs = session.Select(r => (double)r.N).ToArray();
-            double[] ys = session.Select(r => r.ElapsedTimeMs).ToArray();
-
-            var scatter = plotControl.Plot.Add.ScatterLine(xs, ys);
-            scatter.LineWidth = 2;
-            scatter.Label = session.Key; // Помечаем легенду датой
-        }
-
-        plotControl.Plot.ShowLegend(); // Включаем легенду
-        plotControl.Plot.Title($"{algoName} (Сравнение истории)");
-        plotControl.Plot.XLabel("Размер массива (N)");
-        plotControl.Plot.YLabel("Время (мс)");
-        plotControl.Refresh();
-
-        border.Child = plotControl;
-        PlotsPanel.Children.Add(border);
-        _activePlots.Add(plotControl);
+        var historyWindow = new HistoryWindow(this);
+        historyWindow.Show();
     }
     
-    StatusText.Text = "История загружена!";
-}
+    public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
+    {
+        PlotsPanel.Children.Clear();
+        _activePlots.Clear();
+
+        if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
+
+        var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
+        var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
+
+        var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
+
+        foreach (var algoName in uniqueAlgorithms)
+        {
+            var border = new Border
+            {
+                Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
+                Padding = new Avalonia.Thickness(8), 
+                Background = SolidColorBrush.Parse("#252526"),
+                BorderBrush = SolidColorBrush.Parse("#3E3E3E"), 
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(6)
+            };
+
+            var plotControl = new AvaPlot { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
+            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
+            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+
+            int runIndex = 1;
+
+            foreach (var session in sessionsToCompare)
+            {
+                var sessionAlgoResults = session.Results
+                    .Where(r => r.AlgorithmName == algoName)
+                    .OrderBy(r => r.N)
+                    .ToList();
+
+                if (!sessionAlgoResults.Any()) continue;
+
+                double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
+                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+
+                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
+                scatter.LineWidth = 2;
+                scatter.Color = ScottPlot.Color.FromHex(colors[(runIndex - 1) % colors.Length]);
+                
+                string timeStr = session.Date.ToString("HH:mm:ss");
+                scatter.LegendText = $"[{runIndex}] {timeStr}"; 
+                
+                runIndex++;
+            }
+
+            plotControl.Plot.ShowLegend();
+            plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
+            
+            plotControl.Plot.Title(algoName, size: null);
+            plotControl.Plot.XLabel("Размер массива (N)");
+            plotControl.Plot.YLabel("Время (мс)");
+            
+            plotControl.Plot.Axes.AutoScale();
+            plotControl.Refresh();
+
+            border.Child = plotControl;
+            PlotsPanel.Children.Add(border);
+            _activePlots.Add(plotControl);
+        }
+        
+        StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+    }
 }

@@ -1,7 +1,7 @@
 ﻿using Algorithms.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Algorithms.GUI;
+namespace Algorithms.GUI.Models;
 
 // Наследуем от ObservableObject для реактивности UI
 public partial class AlgorithmTaskItem : ObservableObject

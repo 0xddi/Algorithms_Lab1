@@ -1,0 +1,43 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:Algorithms.GUI.Models"
+        x:Class="Algorithms.GUI.Views.HistoryWindow"
+        x:CompileBindings="False"
+        Title="Управление историей (Кэш БД)" Width="500" Height="600"
+        WindowStartupLocation="CenterOwner"
+        RequestedThemeVariant="Dark">
+    
+    <Window.Background>
+        <SolidColorBrush Color="#121212"/>
+    </Window.Background>
+
+    <Grid RowDefinitions="Auto, *, Auto" Margin="15">
+        <TextBlock Grid.Row="0" Text="Сохраненные сессии" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="#FFFFFF"/>
+
+        <!-- Обязательно Name="HistoryListBox" или x:Name="HistoryListBox" -->
+        <ListBox Grid.Row="1" x:Name="HistoryListBox" SelectionMode="Multiple" Background="#1E1E1E" CornerRadius="8">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:HistorySession">
+                    <StackPanel Margin="5,8">
+                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" Foreground="#009688" FontSize="14"/>
+                        <TextBlock Text="{Binding AlgorithmsSummary}" FontSize="12" Foreground="#AAAAAA" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Загрузить для отображения (одна сессия)" Click="MenuLoadSingle_Click"/>
+                    <MenuItem Header="Загрузить для сравнения (выбранные)" Click="MenuLoadCompare_Click"/>
+                    <MenuItem Header="Сравнить с уже загруженными данными" Click="MenuCompareWithLoaded_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Удалить выбранные данные" Click="MenuDelete_Click" Foreground="#FF5252"/>
+                </ContextMenu>
+            </ListBox.ContextMenu>
+        </ListBox>
+
+        <Button Grid.Row="2" Content="Очистить всю базу данных" Click="ClearDbButton_Click" 
+                Margin="0,15,0,0" Background="#8B0000" Foreground="White" 
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Height="40"/>
+    </Grid>
+</Window>
