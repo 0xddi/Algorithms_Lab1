@@ -21,8 +21,8 @@ public partial class MainWindow : Window
 {
     private Benchmarker? _benchmarker;
     private readonly List<AvaPlot> _activePlots = new(); 
+    private List<BenchmarkTask> _lastExecutedTasks = new();
     
-    // Добавлена ссылка на открытое окно истории для его обновления
     private HistoryWindow? _historyWindow;
     
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
@@ -59,6 +59,58 @@ public partial class MainWindow : Window
         RegisterTaskInfo("Classic Fast Pow", slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
 
         AlgorithmsList.ItemsSource = AlgorithmItems;
+    }
+
+    /// <summary>
+    /// Возвращает значение теоретической функции сложности f(n) для алгоритма
+    /// </summary>
+    private static double GetTheoreticalComplexity(string algoName, double n)
+    {
+        if (n <= 0) n = 1;
+        return algoName switch
+        {
+            "Bubble Sort" or "Naive Polynomial" => n * n, // O(n^2)
+            "Quick Sort" or "Tim Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
+            "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial" 
+                or "Simple Pow (x^n)" or "Recursive Pow" => n, // O(n)
+            "Fast Pow" or "Classic Fast Pow" => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
+            "Constant Function" => 1.0, // O(1)
+            _ => n
+        };
+    }
+
+    /// <summary>
+    /// Расчет аппроксимирующей функции T_approx(n) = C * f(n) по МНК и среднеквадратичной ошибки (MSE)
+    /// </summary>
+    private static (double C, double Mse, double[] YApprox) FitApproximation(double[] xs, double[] ys, string algoName)
+    {
+        int k = xs.Length;
+        if (k == 0) return (0, 0, Array.Empty<double>());
+
+        double sumNumerator = 0;
+        double sumDenominator = 0;
+        double[] fn = new double[k];
+
+        for (int i = 0; i < k; i++)
+        {
+            fn[i] = GetTheoreticalComplexity(algoName, xs[i]);
+            sumNumerator += ys[i] * fn[i];
+            sumDenominator += fn[i] * fn[i];
+        }
+
+        double C = sumDenominator > 1e-12 ? sumNumerator / sumDenominator : 0;
+        double[] yApprox = new double[k];
+        double sumSquaredError = 0;
+
+        for (int i = 0; i < k; i++)
+        {
+            yApprox[i] = C * fn[i];
+            double err = ys[i] - yApprox[i];
+            sumSquaredError += err * err;
+        }
+
+        double mse = sumSquaredError / k;
+        return (C, mse, yApprox);
     }
 
     private double[] GenerateDataFromUI()
@@ -128,9 +180,10 @@ public partial class MainWindow : Window
             _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
         });
 
+        _lastExecutedTasks = selectedTasks;
+        CurrentLoadedSessions.Clear(); // сбрасываем режим сравнения сессий
         RenderIndividualCharts(selectedTasks);
         
-        // Автоматически обновляем окно истории (если оно открыто)
         _historyWindow?.LoadHistoryFromDb();
 
         RunButton.IsEnabled = true;
@@ -140,6 +193,11 @@ public partial class MainWindow : Window
 
     private void RenderIndividualCharts(List<BenchmarkTask> tasks)
     {
+        PlotsPanel.Children.Clear();
+        _activePlots.Clear();
+
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+
         foreach (var task in tasks)
         {
             var border = new Border
@@ -163,9 +221,25 @@ public partial class MainWindow : Window
 
             if (xs.Length > 0 && ys.Length > 0)
             {
-                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
-                scatter.LineWidth = 2;
-                scatter.Color = ScottPlot.Color.FromHex("#009688"); // Отрисовка как обычно
+                var empiricalScatter = plotControl.Plot.Add.Scatter(xs, ys);
+                empiricalScatter.LineWidth = 2;
+                empiricalScatter.Color = ScottPlot.Color.FromHex("#009688");
+                empiricalScatter.LegendText = "Эксперимент";
+
+                if (showApprox)
+                {
+                    var (c, mse, yApprox) = FitApproximation(xs, ys, task.Name);
+                    var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
+                    approxScatter.LineWidth = 2;
+                    approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
+                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800"); // Выделяющийся оранжевый цвет
+                    approxScatter.MarkerSize = 0; // Линия без маркеров
+                    approxScatter.LegendText = $"Теория (MSE: {mse:E2})";
+                    
+                    plotControl.Plot.ShowLegend();
+                    plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
+                }
+
                 plotControl.Plot.Axes.AutoScale();
             }
 
@@ -177,6 +251,19 @@ public partial class MainWindow : Window
             border.Child = plotControl;
             PlotsPanel.Children.Add(border);
             _activePlots.Add(plotControl);
+        }
+    }
+
+    private void ShowApprox_Click(object? sender, RoutedEventArgs e)
+    {
+        // При переключении галочки перерисовываем актуальные графики
+        if (CurrentLoadedSessions.Any())
+        {
+            RenderComparisonCharts(CurrentLoadedSessions);
+        }
+        else if (_lastExecutedTasks.Any())
+        {
+            RenderIndividualCharts(_lastExecutedTasks);
         }
     }
 
@@ -207,7 +294,6 @@ public partial class MainWindow : Window
     
     private void CompareHistoryButton_Click(object? sender, RoutedEventArgs e)
     {
-        // Проверяем, открыто ли уже окно. Если нет — создаем, если да — выводим на передний план.
         if (_historyWindow == null)
         {
             _historyWindow = new HistoryWindow(this);
@@ -227,6 +313,7 @@ public partial class MainWindow : Window
 
         if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
 
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
         var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
         var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
 
@@ -249,11 +336,9 @@ public partial class MainWindow : Window
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
             plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
 
-            // Проверяем, совпадает ли алгоритм в сравниваемых данных (встречается ли он > 1 раза)
             var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
             bool isShared = sessionsWithAlgo.Count > 1;
 
-            // Индексация привязана строго к сессии для сохранения целостности номеров (№1, №2, и т.д.)
             for (int i = 0; i < sessionsToCompare.Count; i++)
             {
                 var session = sessionsToCompare[i];
@@ -272,22 +357,28 @@ public partial class MainWindow : Window
 
                 if (isShared)
                 {
-                    // Пункт 1: совпадающие алгоритмы
                     scatter.Color = ScottPlot.Color.FromHex(colors[i % colors.Length]);
-                    scatter.LegendText = $"№ {i + 1}"; // Подписываем в соответствии со своими номерами
+                    scatter.LegendText = $"№ {i + 1}";
                 }
                 else
                 {
-                    // Пункт 2: не совпадающие просто рисуются как обычно (стандартный цвет, без подписи)
                     scatter.Color = ScottPlot.Color.FromHex("#009688"); 
+                }
+
+                if (showApprox && xs.Length > 0)
+                {
+                    var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
+                    var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
+                    approxScatter.LineWidth = 1.5f;
+                    approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
+                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                    approxScatter.MarkerSize = 0;
+                    approxScatter.LegendText = isShared ? $"Теория №{i+1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
                 }
             }
 
-            if (isShared)
-            {
-                plotControl.Plot.ShowLegend();
-                plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight; // Размещаем подписи в правом нижнем углу
-            }
+            plotControl.Plot.ShowLegend();
+            plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
             
             plotControl.Plot.Title(algoName, size: null);
             plotControl.Plot.XLabel("Размер массива (N)");

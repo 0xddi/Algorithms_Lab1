@@ -30,9 +30,15 @@ public class Benchmarker
             GC.WaitForPendingFinalizers();
             GC.Collect();
 
-            // Предварительно загружаем кэш для текущего алгоритма, чтобы не делать запрос в БД на каждой итерации
+            // Группируем по N и берем последнее измерение по дате, чтобы избежать дублирования ключей
             var cachedData = useCache 
-                ? db.Results.Where(r => r.AlgorithmName == task.Name).ToDictionary(r => r.N, r => r.ElapsedTimeMs) 
+                ? db.Results
+                    .Where(r => r.AlgorithmName == task.Name)
+                    .GroupBy(r => r.N)
+                    .ToDictionary(
+                        g => g.Key, 
+                        g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs
+                    )
                 : new Dictionary<int, double>();
 
             for (int i = 0; i < _masterData.Length; i++)
@@ -44,7 +50,7 @@ public class Benchmarker
                 {
                     double cachedTicks = cachedTime * TimeSpan.TicksPerMillisecond;
                     task.Results.Add((currentN, cachedTime, cachedTicks));
-                    continue; // Пропускаем вычисление
+                    continue;
                 }
 
                 // 2. Если в кэше нет — запускаем замер
@@ -54,19 +60,18 @@ public class Benchmarker
 
                 task.Results.Add((currentN, avgTimeMs, avgTicks));
 
-                // 3. Сохраняем в БД (как усредненный результат)
+                // 3. Сохраняем в БД
                 db.Results.Add(new ExperimentResult
                 {
                     AlgorithmName = task.Name,
                     N = currentN,
-                    RunNumber = 0, // 0 - агрегированный запуск
+                    RunNumber = 0,
                     ElapsedTimeMs = avgTimeMs,
                     ExperimentDate = experimentDate,
                     StepCount = null 
                 });
             }
-            
-            // Сохраняем все новые записи пакетом
+        
             db.SaveChanges();
         }
     }
