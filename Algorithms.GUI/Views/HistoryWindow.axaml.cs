@@ -23,7 +23,7 @@ public partial class HistoryWindow : Window
         _mainWindow = mainWindow;
     }
 
-    private void LoadHistoryFromDb()
+    public void LoadHistoryFromDb()
     {
         using var db = new AppDbContext();
         var grouped = db.Results

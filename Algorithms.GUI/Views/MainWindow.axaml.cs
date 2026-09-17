@@ -22,6 +22,9 @@ public partial class MainWindow : Window
     private Benchmarker? _benchmarker;
     private readonly List<AvaPlot> _activePlots = new(); 
     
+    // Добавлена ссылка на открытое окно истории для его обновления
+    private HistoryWindow? _historyWindow;
+    
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
 
@@ -40,21 +43,15 @@ public partial class MainWindow : Window
             AlgorithmItems.Add(new AlgorithmTaskItem { Name = name, IsSelected = true, Task = task });
         }
 
-        // 1. Сортировки
         RegisterTaskInfo("Bubble Sort", slice => new BubbleSortAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Quick Sort", slice => new QuickSortAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Tim Sort", slice => new TimSortAlgorithm(slice).RunBench(5));
-
-        // 2. Математические функции
         RegisterTaskInfo("Constant Function", slice => new ConstantFunctionAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Sum Algorithm", slice => new SumAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Product Algorithm", slice => new ProductAlgorithm(slice).RunBench(5));
-
-        // 3. Полиномы
         RegisterTaskInfo("Naive Polynomial", slice => new NaivePolynomialAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5));
 
-        // 4. Степени
         const double baseX = 1.5;
         RegisterTaskInfo("Simple Pow (x^n)", slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
         RegisterTaskInfo("Recursive Pow", slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
@@ -132,6 +129,9 @@ public partial class MainWindow : Window
         });
 
         RenderIndividualCharts(selectedTasks);
+        
+        // Автоматически обновляем окно истории (если оно открыто)
+        _historyWindow?.LoadHistoryFromDb();
 
         RunButton.IsEnabled = true;
         ProgressIndicator.IsVisible = false;
@@ -165,7 +165,7 @@ public partial class MainWindow : Window
             {
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
-                scatter.Color = ScottPlot.Color.FromHex("#009688");
+                scatter.Color = ScottPlot.Color.FromHex("#009688"); // Отрисовка как обычно
                 plotControl.Plot.Axes.AutoScale();
             }
 
@@ -180,16 +180,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SelectAll_Click(object? sender, RoutedEventArgs e)
-    {
-        foreach (var item in AlgorithmItems) item.IsSelected = true;
-    }
-
-    private void DeselectAll_Click(object? sender, RoutedEventArgs e)
-    {
-        foreach (var item in AlgorithmItems) item.IsSelected = false;
-    }
-
+    private void SelectAll_Click(object? sender, RoutedEventArgs e) => AlgorithmItems.ToList().ForEach(i => i.IsSelected = true);
+    private void DeselectAll_Click(object? sender, RoutedEventArgs e) => AlgorithmItems.ToList().ForEach(i => i.IsSelected = false);
     private void ZoomInX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.2, 1.0);
     private void ZoomOutX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(0.8, 1.0);
     private void ZoomInY_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.0, 1.2);
@@ -215,8 +207,17 @@ public partial class MainWindow : Window
     
     private void CompareHistoryButton_Click(object? sender, RoutedEventArgs e)
     {
-        var historyWindow = new HistoryWindow(this);
-        historyWindow.Show();
+        // Проверяем, открыто ли уже окно. Если нет — создаем, если да — выводим на передний план.
+        if (_historyWindow == null)
+        {
+            _historyWindow = new HistoryWindow(this);
+            _historyWindow.Closed += (s, args) => _historyWindow = null;
+            _historyWindow.Show();
+        }
+        else
+        {
+            _historyWindow.Activate();
+        }
     }
     
     public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
@@ -248,10 +249,14 @@ public partial class MainWindow : Window
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
             plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
 
-            int runIndex = 1;
+            // Проверяем, совпадает ли алгоритм в сравниваемых данных (встречается ли он > 1 раза)
+            var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
+            bool isShared = sessionsWithAlgo.Count > 1;
 
-            foreach (var session in sessionsToCompare)
+            // Индексация привязана строго к сессии для сохранения целостности номеров (№1, №2, и т.д.)
+            for (int i = 0; i < sessionsToCompare.Count; i++)
             {
+                var session = sessionsToCompare[i];
                 var sessionAlgoResults = session.Results
                     .Where(r => r.AlgorithmName == algoName)
                     .OrderBy(r => r.N)
@@ -264,16 +269,25 @@ public partial class MainWindow : Window
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
-                scatter.Color = ScottPlot.Color.FromHex(colors[(runIndex - 1) % colors.Length]);
-                
-                string timeStr = session.Date.ToString("HH:mm:ss");
-                scatter.LegendText = $"[{runIndex}] {timeStr}"; 
-                
-                runIndex++;
+
+                if (isShared)
+                {
+                    // Пункт 1: совпадающие алгоритмы
+                    scatter.Color = ScottPlot.Color.FromHex(colors[i % colors.Length]);
+                    scatter.LegendText = $"№ {i + 1}"; // Подписываем в соответствии со своими номерами
+                }
+                else
+                {
+                    // Пункт 2: не совпадающие просто рисуются как обычно (стандартный цвет, без подписи)
+                    scatter.Color = ScottPlot.Color.FromHex("#009688"); 
+                }
             }
 
-            plotControl.Plot.ShowLegend();
-            plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
+            if (isShared)
+            {
+                plotControl.Plot.ShowLegend();
+                plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight; // Размещаем подписи в правом нижнем углу
+            }
             
             plotControl.Plot.Title(algoName, size: null);
             plotControl.Plot.XLabel("Размер массива (N)");
