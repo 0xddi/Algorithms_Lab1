@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Algorithms.Core;
 using Algorithms.Core.Database;
 using Algorithms.Core.MathFunctions;
+using Algorithms.Core.MatrixAlgorithms;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
 using Algorithms.GUI.Models;
@@ -142,54 +143,69 @@ public partial class MainWindow : Window
         return Array.Empty<double>(); 
     }
 
-    private async void RunButton_Click(object? sender, RoutedEventArgs e)
+   private async void RunButton_Click(object? sender, RoutedEventArgs e)
+{
+    var selectedTasks = AlgorithmItems.Where(item => item.IsSelected == true).Select(item => item.Task).ToList();
+
+    if (selectedTasks.Count == 0)
     {
-        var selectedTasks = AlgorithmItems.Where(item => item.IsSelected == true).Select(item => item.Task).ToList();
+        StatusText.Text = "Выберите хотя бы один алгоритм!";
+        return;
+    }
 
-        if (selectedTasks.Count == 0)
-        {
-            StatusText.Text = "Выберите хотя бы один алгоритм!";
-            return;
-        }
+    double[] inputData = GenerateDataFromUI();
+    if (inputData.Length == 0)
+    {
+        StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
+        return;
+    }
 
-        double[] inputData = GenerateDataFromUI();
-        if (inputData.Length == 0)
-        {
-            StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
-            return;
-        }
+    RunButton.IsEnabled = false;
+    ProgressIndicator.IsVisible = true;
+    StatusText.Text = $"Выполняются замеры ({inputData.Length} элементов)...";
+    PlotsPanel.Children.Clear();
+    _activePlots.Clear();
 
-        RunButton.IsEnabled = false;
-        ProgressIndicator.IsVisible = true;
-        StatusText.Text = $"Выполняются замеры ({inputData.Length} элементов)...";
-        PlotsPanel.Children.Clear();
-        _activePlots.Clear();
+    _benchmarker = new Benchmarker(inputData);
+    
+    foreach (var task in selectedTasks)
+    {
+        task.Results.Clear();
+        _benchmarker.AddTask(task);
+    }
 
-        _benchmarker = new Benchmarker(inputData);
+    bool useCache = UseCacheCheckBox.IsChecked ?? true;
+
+    
+    await Task.Run(() => 
+    {
         
-        foreach (var task in selectedTasks)
+        _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
+        
+        var matrixBench = new MatrixBenchmarker("Matrix Multiplication (naive)", (n, m) =>
         {
-            task.Results.Clear();
-            _benchmarker.AddTask(task);
-        }
-
-        bool useCache = UseCacheCheckBox.IsChecked ?? true;
-
-        await Task.Run(() => 
-        {
-            _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
+            var a = MatrixUtils.GenerateRandomMatrix(n, m);
+            var b = MatrixUtils.GenerateRandomMatrix(m, n);
+            return new MatrixMultiplicationAlgorithm((a, b)).RunBench(5);
         });
 
-        _lastExecutedTasks = selectedTasks;
-        CurrentLoadedSessions.Clear(); // сбрасываем режим сравнения сессий
-        RenderIndividualCharts(selectedTasks);
-        
-        _historyWindow?.LoadHistoryFromDb();
+        var nValues = Enumerable.Range(1, 20).Select(i => i * 10);
+        var mValues = Enumerable.Range(1, 20).Select(i => i * 10); 
 
-        RunButton.IsEnabled = true;
-        ProgressIndicator.IsVisible = false;
-        StatusText.Text = "Вычисления успешно завершены!";
-    }
+        matrixBench.Run(nValues, mValues, useCache: useCache);
+    });
+    
+
+    _lastExecutedTasks = selectedTasks;
+    CurrentLoadedSessions.Clear(); //
+    RenderIndividualCharts(selectedTasks);
+    
+    _historyWindow?.LoadHistoryFromDb();
+
+    RunButton.IsEnabled = true;
+    ProgressIndicator.IsVisible = false;
+    StatusText.Text = "Вычисления успешно завершены!";
+}
 
     private void RenderIndividualCharts(List<BenchmarkTask> tasks)
     {
