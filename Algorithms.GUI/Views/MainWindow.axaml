@@ -70,6 +70,28 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
+                    
+                    <!-- Матрицы (Часть II) -->
+                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E" BorderThickness="1">
+                        <StackPanel Spacing="10">
+                            <CheckBox Name="RunMatrixCheckBox" Content="Умножение матриц (n×m)" IsChecked="True" 
+                                      Foreground="#E0E0E0" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="20,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="N max" FontSize="11" Foreground="#AAAAAA"/>
+                                    <TextBox Name="MatrixNMaxBox" Text="200" Width="80"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="M max" FontSize="11" Foreground="#AAAAAA"/>
+                                    <TextBox Name="MatrixMMaxBox" Text="200" Width="80"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Шаг" FontSize="11" Foreground="#AAAAAA"/>
+                                    <TextBox Name="MatrixStepBox" Text="10" Width="80"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
                     <!-- 3. Управление запуском и отображением -->
                     <StackPanel Spacing="10" Margin="0,10,0,0">
@@ -85,6 +107,8 @@
                         
                         <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True" Foreground="#CCCCCC"/>
                         <Button Name="CompareHistoryButton" Content="Сравнить историю из БД" Click="CompareHistoryButton_Click" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30"/>
+                        <Button Name="Show3DButton" Content="3D график (матрицы)" Click="Show3D_Click"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30"/>
                     </StackPanel>
                     

@@ -1,0 +1,12 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hx="clr-namespace:HelixToolkit.Avalonia.SharpDX;assembly=HelixToolkit.Avalonia.SharpDX"
+        x:Class="Algorithms.GUI.Views.MatrixSurfaceWindow"
+        Title="3D: время умножения матриц от n и m" Width="900" Height="700"
+        RequestedThemeVariant="Dark">
+    <hx:Viewport3DX Name="Viewport"
+                    ShowCoordinateSystem="True"
+                    ZoomExtentsWhenLoaded="True"
+                    Background="#1E1E1E">
+    </hx:Viewport3DX>
+</Window>

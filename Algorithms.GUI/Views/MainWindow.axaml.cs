@@ -21,11 +21,12 @@ namespace Algorithms.GUI.Views;
 public partial class MainWindow : Window
 {
     private Benchmarker? _benchmarker;
-    private readonly List<AvaPlot> _activePlots = new(); 
+    private readonly List<AvaPlot> _activePlots = new();
     private List<BenchmarkTask> _lastExecutedTasks = new();
-    
+    private List<MatrixBenchmarkResult> _lastMatrixResults = new();
+
     private HistoryWindow? _historyWindow;
-    
+
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
 
@@ -55,9 +56,11 @@ public partial class MainWindow : Window
 
         const double baseX = 1.5;
         RegisterTaskInfo("Simple Pow (x^n)", slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
-        RegisterTaskInfo("Recursive Pow", slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Recursive Pow",
+            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
         RegisterTaskInfo("Fast Pow", slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
-        RegisterTaskInfo("Classic Fast Pow", slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Classic Fast Pow",
+            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
 
         AlgorithmsList.ItemsSource = AlgorithmItems;
     }
@@ -72,7 +75,7 @@ public partial class MainWindow : Window
         {
             "Bubble Sort" or "Naive Polynomial" => n * n, // O(n^2)
             "Quick Sort" or "Tim Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
-            "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial" 
+            "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial"
                 or "Simple Pow (x^n)" or "Recursive Pow" => n, // O(n)
             "Fast Pow" or "Classic Fast Pow" => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
             "Constant Function" => 1.0, // O(1)
@@ -114,6 +117,94 @@ public partial class MainWindow : Window
         return (C, mse, yApprox);
     }
 
+    /// <summary>
+    /// Теоретическое число операций для наивного умножения A(n×m) на B(m×n): n*m*n = n²·m
+    /// </summary>
+    private static double GetMatrixTheoreticalComplexity(int n, int m) => (double)n * n * m;
+
+    private static (double C, double Mse) FitMatrixApproximation(IReadOnlyList<MatrixBenchmarkResult> results)
+    {
+        int k = results.Count;
+        if (k == 0) return (0, 0);
+
+        double sumNumerator = 0, sumDenominator = 0;
+        var fn = new double[k];
+
+        for (int i = 0; i < k; i++)
+        {
+            fn[i] = GetMatrixTheoreticalComplexity(results[i].N, results[i].M);
+            sumNumerator += results[i].TimeMs * fn[i];
+            sumDenominator += fn[i] * fn[i];
+        }
+
+        double C = sumDenominator > 1e-12 ? sumNumerator / sumDenominator : 0;
+
+        double sumSquaredError = 0;
+        for (int i = 0; i < k; i++)
+        {
+            double approx = C * fn[i];
+            double err = results[i].TimeMs - approx;
+            sumSquaredError += err * err;
+        }
+
+        return (C, sumSquaredError / k);
+    }
+
+    private void RenderMatrixHeatmap(List<MatrixBenchmarkResult> results, string titleSuffix = "")
+    {
+        if (results.Count == 0) return;
+
+        var nValues = results.Select(r => r.N).Distinct().OrderBy(x => x).ToArray();
+        var mValues = results.Select(r => r.M).Distinct().OrderBy(x => x).ToArray();
+
+        // data[row, col]: строки — значения m, столбцы — значения n
+        var data = new double[mValues.Length, nValues.Length];
+        foreach (var r in results)
+        {
+            int row = Array.IndexOf(mValues, r.M);
+            int col = Array.IndexOf(nValues, r.N);
+            data[row, col] = r.TimeMs;
+        }
+
+        var border = new Border
+        {
+            Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
+            Padding = new Avalonia.Thickness(8),
+            Background = SolidColorBrush.Parse("#252526"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(6)
+        };
+
+        var plotControl = new AvaPlot
+            { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
+        plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
+        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+
+        var heatmap = plotControl.Plot.Add.Heatmap(data);
+        heatmap.Colormap = new ScottPlot.Colormaps.Viridis();
+        heatmap.Extent = new ScottPlot.CoordinateRect(nValues.Min(), nValues.Max(), mValues.Min(), mValues.Max());
+        plotControl.Plot.Add.ColorBar(heatmap);
+
+        string title = "Умножение матриц (n×m)" + titleSuffix;
+        if (ShowApproxCheckBox.IsChecked ?? true)
+        {
+            var (_, mse) = FitMatrixApproximation(results);
+            title += $" (MSE: {mse:E2})";
+        }
+
+        plotControl.Plot.Title(title);
+        plotControl.Plot.XLabel("n");
+        plotControl.Plot.YLabel("m");
+        plotControl.Plot.Axes.AutoScale();
+        plotControl.Refresh();
+
+        border.Child = plotControl;
+        PlotsPanel.Children.Add(border);
+        _activePlots.Add(plotControl);
+    }
+
     private double[] GenerateDataFromUI()
     {
         if (RangeDataRadio.IsChecked == true)
@@ -139,73 +230,91 @@ public partial class MainWindow : Window
                 return arr;
             }
         }
-        
-        return Array.Empty<double>(); 
+
+        return Array.Empty<double>();
     }
 
-   private async void RunButton_Click(object? sender, RoutedEventArgs e)
-{
-    var selectedTasks = AlgorithmItems.Where(item => item.IsSelected == true).Select(item => item.Task).ToList();
-
-    if (selectedTasks.Count == 0)
+    private async void RunButton_Click(object? sender, RoutedEventArgs e)
     {
-        StatusText.Text = "Выберите хотя бы один алгоритм!";
-        return;
-    }
+        var selectedTasks = AlgorithmItems.Where(item => item.IsSelected == true).Select(item => item.Task).ToList();
 
-    double[] inputData = GenerateDataFromUI();
-    if (inputData.Length == 0)
-    {
-        StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
-        return;
-    }
+        bool runMatrix = RunMatrixCheckBox.IsChecked ?? true;
 
-    RunButton.IsEnabled = false;
-    ProgressIndicator.IsVisible = true;
-    StatusText.Text = $"Выполняются замеры ({inputData.Length} элементов)...";
-    PlotsPanel.Children.Clear();
-    _activePlots.Clear();
-
-    _benchmarker = new Benchmarker(inputData);
-    
-    foreach (var task in selectedTasks)
-    {
-        task.Results.Clear();
-        _benchmarker.AddTask(task);
-    }
-
-    bool useCache = UseCacheCheckBox.IsChecked ?? true;
-
-    
-    await Task.Run(() => 
-    {
-        
-        _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
-        
-        var matrixBench = new MatrixBenchmarker("Matrix Multiplication (naive)", (n, m) =>
+        if (selectedTasks.Count == 0 && !runMatrix)
         {
-            var a = MatrixUtils.GenerateRandomMatrix(n, m);
-            var b = MatrixUtils.GenerateRandomMatrix(m, n);
-            return new MatrixMultiplicationAlgorithm((a, b)).RunBench(5);
+            StatusText.Text = "Выберите хотя бы один алгоритм!";
+            return;
+        }
+
+        double[] inputData = GenerateDataFromUI();
+        if (selectedTasks.Count > 0 && inputData.Length == 0)
+        {
+            StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
+            return;
+        }
+
+        RunButton.IsEnabled = false;
+        ProgressIndicator.IsVisible = true;
+        StatusText.Text = "Выполняются замеры...";
+        PlotsPanel.Children.Clear();
+        _activePlots.Clear();
+
+        _benchmarker = new Benchmarker(inputData);
+
+        foreach (var task in selectedTasks)
+        {
+            task.Results.Clear();
+            _benchmarker.AddTask(task);
+        }
+
+        bool useCache = UseCacheCheckBox.IsChecked ?? true;
+
+        int matrixNMax = int.TryParse(MatrixNMaxBox.Text, out var nm) && nm > 0 ? nm : 200;
+        int matrixMMax = int.TryParse(MatrixMMaxBox.Text, out var mm) && mm > 0 ? mm : 200;
+        int matrixStep = int.TryParse(MatrixStepBox.Text, out var ms) && ms > 0 ? ms : 10;
+
+        List<MatrixBenchmarkResult>? matrixResults = null;
+
+        await Task.Run(() =>
+        {
+            if (selectedTasks.Count > 0)
+            {
+                _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
+            }
+
+            if (runMatrix)
+            {
+                var matrixBench = new MatrixBenchmarker("Matrix Multiplication (naive)", (n, m) =>
+                {
+                    var a = MatrixUtils.GenerateRandomMatrix(n, m);
+                    var b = MatrixUtils.GenerateRandomMatrix(m, n);
+                    return new MatrixMultiplicationAlgorithm((a, b)).RunBench(5);
+                });
+
+                var nValues = Enumerable.Range(1, matrixNMax / matrixStep).Select(i => i * matrixStep);
+                var mValues = Enumerable.Range(1, matrixMMax / matrixStep).Select(i => i * matrixStep);
+
+                matrixBench.Run(nValues, mValues, useCache: useCache);
+                matrixResults = matrixBench.Results;
+            }
         });
 
-        var nValues = Enumerable.Range(1, 20).Select(i => i * 10);
-        var mValues = Enumerable.Range(1, 20).Select(i => i * 10); 
+        _lastExecutedTasks = selectedTasks;
+        _lastMatrixResults = matrixResults ?? new List<MatrixBenchmarkResult>();
+        CurrentLoadedSessions.Clear();
 
-        matrixBench.Run(nValues, mValues, useCache: useCache);
-    });
-    
+        RenderIndividualCharts(selectedTasks);
+        if (_lastMatrixResults.Any())
+        {
+            RenderMatrixHeatmap(_lastMatrixResults);
+        }
 
-    _lastExecutedTasks = selectedTasks;
-    CurrentLoadedSessions.Clear(); //
-    RenderIndividualCharts(selectedTasks);
-    
-    _historyWindow?.LoadHistoryFromDb();
+        _historyWindow?.LoadHistoryFromDb();
 
-    RunButton.IsEnabled = true;
-    ProgressIndicator.IsVisible = false;
-    StatusText.Text = "Вычисления успешно завершены!";
-}
+        RunButton.IsEnabled = true;
+        ProgressIndicator.IsVisible = false;
+        StatusText.Text = "Вычисления успешно завершены!";
+    }
 
     private void RenderIndividualCharts(List<BenchmarkTask> tasks)
     {
@@ -219,15 +328,16 @@ public partial class MainWindow : Window
             var border = new Border
             {
                 Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
-                Padding = new Avalonia.Thickness(8), 
+                Padding = new Avalonia.Thickness(8),
                 Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E3E"), 
+                BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
                 BorderThickness = new Avalonia.Thickness(1),
                 CornerRadius = new Avalonia.CornerRadius(6)
             };
 
-            var plotControl = new AvaPlot { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-            
+            var plotControl = new AvaPlot
+                { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+
             plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
             plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
@@ -251,7 +361,7 @@ public partial class MainWindow : Window
                     approxScatter.Color = ScottPlot.Color.FromHex("#FF9800"); // Выделяющийся оранжевый цвет
                     approxScatter.MarkerSize = 0; // Линия без маркеров
                     approxScatter.LegendText = $"Теория (MSE: {mse:E2})";
-                    
+
                     plotControl.Plot.ShowLegend();
                     plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
                 }
@@ -270,21 +380,42 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    ///При переключении галочки перерисовываем актуальные графики
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void ShowApprox_Click(object? sender, RoutedEventArgs e)
     {
-        // При переключении галочки перерисовываем актуальные графики
         if (CurrentLoadedSessions.Any())
         {
             RenderComparisonCharts(CurrentLoadedSessions);
         }
-        else if (_lastExecutedTasks.Any())
+        else if (_lastExecutedTasks.Any() || _lastMatrixResults.Any())
         {
+            PlotsPanel.Children.Clear();
+            _activePlots.Clear();
             RenderIndividualCharts(_lastExecutedTasks);
+            if (_lastMatrixResults.Any()) RenderMatrixHeatmap(_lastMatrixResults);
         }
     }
+    
+    private void Show3D_Click(object? sender, RoutedEventArgs e)
+    {
+        if (!_lastMatrixResults.Any())
+        {
+            StatusText.Text = "Сначала запусти эксперимент с матрицами.";
+            return;
+        }
+        new MatrixSurfaceWindow(_lastMatrixResults).Show();
+    }
 
-    private void SelectAll_Click(object? sender, RoutedEventArgs e) => AlgorithmItems.ToList().ForEach(i => i.IsSelected = true);
-    private void DeselectAll_Click(object? sender, RoutedEventArgs e) => AlgorithmItems.ToList().ForEach(i => i.IsSelected = false);
+    private void SelectAll_Click(object? sender, RoutedEventArgs e) =>
+        AlgorithmItems.ToList().ForEach(i => i.IsSelected = true);
+
+    private void DeselectAll_Click(object? sender, RoutedEventArgs e) =>
+        AlgorithmItems.ToList().ForEach(i => i.IsSelected = false);
+
     private void ZoomInX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.2, 1.0);
     private void ZoomOutX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(0.8, 1.0);
     private void ZoomInY_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.0, 1.2);
@@ -307,7 +438,7 @@ public partial class MainWindow : Window
             plot.Refresh();
         }
     }
-    
+
     private void CompareHistoryButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_historyWindow == null)
@@ -321,93 +452,117 @@ public partial class MainWindow : Window
             _historyWindow.Activate();
         }
     }
-    
-    public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
+
+public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
+{
+    PlotsPanel.Children.Clear();
+    _activePlots.Clear();
+
+    if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
+
+    bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+    var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
+    var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
+
+    var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
+
+    foreach (var algoName in uniqueAlgorithms)
     {
-        PlotsPanel.Children.Clear();
-        _activePlots.Clear();
+        var algoAllResults = allResults.Where(r => r.AlgorithmName == algoName).ToList();
+        bool isMatrixAlgo = algoAllResults.Any(r => r.M.HasValue);
 
-        if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
-
-        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
-        var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
-        var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
-
-        var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
-
-        foreach (var algoName in uniqueAlgorithms)
+        if (isMatrixAlgo)
         {
-            var border = new Border
+            foreach (var session in sessionsToCompare)
             {
-                Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
-                Padding = new Avalonia.Thickness(8), 
-                Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E3E"), 
-                BorderThickness = new Avalonia.Thickness(1),
-                CornerRadius = new Avalonia.CornerRadius(6)
-            };
-
-            var plotControl = new AvaPlot { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
-
-            var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
-            bool isShared = sessionsWithAlgo.Count > 1;
-
-            for (int i = 0; i < sessionsToCompare.Count; i++)
-            {
-                var session = sessionsToCompare[i];
-                var sessionAlgoResults = session.Results
-                    .Where(r => r.AlgorithmName == algoName)
-                    .OrderBy(r => r.N)
+                var sessionMatrixResults = session.Results
+                    .Where(r => r.AlgorithmName == algoName && r.M.HasValue)
+                    .Select(r => new MatrixBenchmarkResult(r.N, r.M!.Value, r.ElapsedTimeMs))
                     .ToList();
 
-                if (!sessionAlgoResults.Any()) continue;
-
-                double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
-                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
-
-                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
-                scatter.LineWidth = 2;
-
-                if (isShared)
+                if (sessionMatrixResults.Any())
                 {
-                    scatter.Color = ScottPlot.Color.FromHex(colors[i % colors.Length]);
-                    scatter.LegendText = $"№ {i + 1}";
-                }
-                else
-                {
-                    scatter.Color = ScottPlot.Color.FromHex("#009688"); 
-                }
-
-                if (showApprox && xs.Length > 0)
-                {
-                    var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
-                    var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
-                    approxScatter.LineWidth = 1.5f;
-                    approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
-                    approxScatter.MarkerSize = 0;
-                    approxScatter.LegendText = isShared ? $"Теория №{i+1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
+                    RenderMatrixHeatmap(sessionMatrixResults, $" — {session.Date:g}");
                 }
             }
 
-            plotControl.Plot.ShowLegend();
-            plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
-            
-            plotControl.Plot.Title(algoName, size: null);
-            plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel("Время (мс)");
-            
-            plotControl.Plot.Axes.AutoScale();
-            plotControl.Refresh();
-
-            border.Child = plotControl;
-            PlotsPanel.Children.Add(border);
-            _activePlots.Add(plotControl);
+            continue; // <-- теперь continue закрывает именно этот if, ничего больше не "прячет"
         }
-        
-        StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+
+        var border = new Border
+        {
+            Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
+            Padding = new Avalonia.Thickness(8),
+            Background = SolidColorBrush.Parse("#252526"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(6)
+        };
+
+        var plotControl = new AvaPlot
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch
+        };
+        plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
+        plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
+        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+
+        var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
+        bool isShared = sessionsWithAlgo.Count > 1;
+
+        for (int i = 0; i < sessionsToCompare.Count; i++)
+        {
+            var session = sessionsToCompare[i];
+            var sessionAlgoResults = session.Results
+                .Where(r => r.AlgorithmName == algoName)
+                .OrderBy(r => r.N)
+                .ToList();
+
+            if (!sessionAlgoResults.Any()) continue;
+
+            double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
+            double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+
+            var scatter = plotControl.Plot.Add.Scatter(xs, ys);
+            scatter.LineWidth = 2;
+
+            if (isShared)
+            {
+                scatter.Color = ScottPlot.Color.FromHex(colors[i % colors.Length]);
+                scatter.LegendText = $"№ {i + 1}";
+            }
+            else
+            {
+                scatter.Color = ScottPlot.Color.FromHex("#009688");
+            }
+
+            if (showApprox && xs.Length > 0)
+            {
+                var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
+                var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
+                approxScatter.LineWidth = 1.5f;
+                approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
+                approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                approxScatter.MarkerSize = 0;
+                approxScatter.LegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
+            }
+        }
+
+        plotControl.Plot.ShowLegend();
+        plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
+
+        plotControl.Plot.Title(algoName, size: null);
+        plotControl.Plot.XLabel("Размер массива (N)");
+        plotControl.Plot.YLabel("Время (мс)");
+
+        plotControl.Plot.Axes.AutoScale();
+        plotControl.Refresh();
+
+        border.Child = plotControl;
+        PlotsPanel.Children.Add(border);
+        _activePlots.Add(plotControl);
     }
+
+    StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+}
 }
