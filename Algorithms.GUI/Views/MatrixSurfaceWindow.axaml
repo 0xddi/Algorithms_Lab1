@@ -9,9 +9,10 @@
     <Grid RowDefinitions="Auto,*">
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="15">
             <TextBlock Text="Угол поворота:" Foreground="#CCCCCC" VerticalAlignment="Center"/>
-            <Slider Name="RotationSlider" Minimum="0" Maximum="360" Value="30" Width="250"
+            <Slider Name="RotationSlider" Minimum="0" Maximum="360" Value="270" Width="250"
                     ValueChanged="RotationSlider_ValueChanged"/>
-            <TextBlock Text="Колесо мыши — масштаб, ЛКМ + тянуть — перемещение"
+            <Button Content="Сбросить вид" Click="ResetViewButton_Click"/>
+            <TextBlock Text="Колесо мыши — масштаб, ЛКМ — перемещение, ПКМ — вращение"
                        Foreground="#888888" VerticalAlignment="Center" FontSize="11"/>
         </StackPanel>
 

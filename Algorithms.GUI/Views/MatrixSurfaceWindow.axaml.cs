@@ -7,21 +7,30 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 
 namespace Algorithms.GUI.Views;
 
 public partial class MatrixSurfaceWindow : Window
 {
+    private const double DefaultRotation = 270;
+    private const double DefaultPanOffsetY = -60;
+
     private int[] _nValues = Array.Empty<int>();
     private int[] _mValues = Array.Empty<int>();
     private double[,] _grid = new double[0, 0];
     private double _maxTime;
+    private double _pivotHeight; // фиксированная опорная высота — точка, вокруг которой всегда вращаемся
 
+    private double _rotationAngle = DefaultRotation;
     private double _zoom = 1.0;
+    private double _defaultZoom = 1.0;
     private double _panOffsetX;
     private double _panOffsetY;
+
     private bool _isPanning;
+    private bool _isRotating;
     private Point _lastPointerPosition;
 
     public MatrixSurfaceWindow() => InitializeComponent();
@@ -40,42 +49,130 @@ public partial class MatrixSurfaceWindow : Window
         }
 
         _maxTime = results.Max(r => r.TimeMs);
+        _pivotHeight = _maxTime / 2.0; // опора — середина диапазона высот, а не 0 и не максимум
+
         LegendMaxText.Text = $"{_maxTime:F2}";
         LegendMinText.Text = "0";
 
-        Opened += (_, _) => DrawSurface(RotationSlider.Value);
+        Opened += (_, _) =>
+        {
+            double canvasW = DrawCanvas.Bounds.Width > 0 ? DrawCanvas.Bounds.Width : 860;
+            double canvasH = DrawCanvas.Bounds.Height > 0 ? DrawCanvas.Bounds.Height : 640;
+            _defaultZoom = ComputeAutoFitZoom(canvasW, canvasH);
+            ResetView();
+        };
+    }
+
+    private void ResetViewButton_Click(object? sender, RoutedEventArgs e) => ResetView();
+
+    private void ResetView()
+    {
+        _rotationAngle = DefaultRotation;
+        _zoom = _defaultZoom;
+        _panOffsetX = 0;
+        _panOffsetY = DefaultPanOffsetY;
+
+        if (Math.Abs(RotationSlider.Value - _rotationAngle) > 0.01)
+            RotationSlider.Value = _rotationAngle;
+        else
+            DrawSurface();
+    }
+
+    /// <summary>
+    /// Подбирает масштаб так, чтобы вся поверхность вписывалась в canvas при угле по умолчанию.
+    /// Считается один раз при открытии — не влияет на стабильность вращения.
+    /// </summary>
+    private double ComputeAutoFitZoom(double canvasW, double canvasH)
+    {
+        int rows = _nValues.Length, cols = _mValues.Length;
+        if (rows < 2 || cols < 2) return 1.0;
+
+        double cx = (rows - 1) / 2.0, cz = (cols - 1) / 2.0;
+        double angle = DefaultRotation * Math.PI / 180.0;
+        double cosA = Math.Cos(angle), sinA = Math.Sin(angle);
+        double scale = 6.0;
+        double heightScale = _maxTime > 0 ? 150.0 / _maxTime : 1.0;
+
+        double minX = double.MaxValue, maxX = double.MinValue, minY = double.MaxValue, maxY = double.MinValue;
+
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < cols; j++)
+            {
+                double dx = i - cx, dz = j - cz;
+                double rx = dx * cosA - dz * sinA;
+                double rz = dx * sinA + dz * cosA;
+                double sx = (rx - rz) * scale * Math.Cos(Math.PI / 6);
+                double sy = (rx + rz) * scale * Math.Sin(Math.PI / 6) - (_grid[i, j] - _pivotHeight) * heightScale;
+
+                if (sx < minX) minX = sx;
+                if (sx > maxX) maxX = sx;
+                if (sy < minY) minY = sy;
+                if (sy > maxY) maxY = sy;
+            }
+        }
+
+        double bboxWidth = Math.Max(maxX - minX, 1);
+        double bboxHeight = Math.Max(maxY - minY, 1);
+
+        double fitX = canvasW * 0.7 / bboxWidth;
+        double fitY = canvasH * 0.7 / bboxHeight;
+
+        return Math.Clamp(Math.Min(fitX, fitY), 0.2, 5.0);
     }
 
     private void RotationSlider_ValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
-        => DrawSurface(e.NewValue);
+    {
+        _rotationAngle = e.NewValue;
+        DrawSurface();
+    }
 
     private void DrawCanvas_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         double zoomFactor = e.Delta.Y > 0 ? 1.1 : 0.9;
         _zoom = Math.Clamp(_zoom * zoomFactor, 0.2, 5.0);
-        DrawSurface(RotationSlider.Value);
+        DrawSurface();
     }
 
     private void DrawCanvas_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        _isPanning = true;
+        var point = e.GetCurrentPoint(DrawCanvas);
+        _isRotating = point.Properties.IsRightButtonPressed;
+        _isPanning = point.Properties.IsLeftButtonPressed;
         _lastPointerPosition = e.GetPosition(DrawCanvas);
+        e.Pointer.Capture(DrawCanvas);
     }
 
     private void DrawCanvas_PointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isPanning) return;
         var pos = e.GetPosition(DrawCanvas);
-        _panOffsetX += pos.X - _lastPointerPosition.X;
-        _panOffsetY += pos.Y - _lastPointerPosition.Y;
+
+        if (_isRotating)
+        {
+            double deltaX = pos.X - _lastPointerPosition.X;
+            _rotationAngle = (_rotationAngle + deltaX * 0.5) % 360;
+            if (_rotationAngle < 0) _rotationAngle += 360;
+
+            RotationSlider.Value = _rotationAngle;
+        }
+        else if (_isPanning)
+        {
+            _panOffsetX += pos.X - _lastPointerPosition.X;
+            _panOffsetY += pos.Y - _lastPointerPosition.Y;
+            DrawSurface();
+        }
+
         _lastPointerPosition = pos;
-        DrawSurface(RotationSlider.Value);
     }
 
     private void DrawCanvas_PointerReleased(object? sender, PointerReleasedEventArgs e)
-        => _isPanning = false;
+    {
+        _isPanning = false;
+        _isRotating = false;
+        e.Pointer.Capture(null);
+    }
 
-    private void DrawSurface(double angleDegrees)
+    private void DrawSurface()
     {
         DrawCanvas.Children.Clear();
 
@@ -83,29 +180,38 @@ public partial class MatrixSurfaceWindow : Window
         int cols = _mValues.Length;
         if (rows < 2 || cols < 2) return;
 
-        double angle = angleDegrees * Math.PI / 180.0;
+        double angle = _rotationAngle * Math.PI / 180.0;
         double cosA = Math.Cos(angle);
         double sinA = Math.Sin(angle);
+
+        double cx = (rows - 1) / 2.0;
+        double cz = (cols - 1) / 2.0;
 
         double canvasW = DrawCanvas.Bounds.Width > 0 ? DrawCanvas.Bounds.Width : 860;
         double canvasH = DrawCanvas.Bounds.Height > 0 ? DrawCanvas.Bounds.Height : 640;
 
         double scale = 6.0 * _zoom;
         double heightScale = (_maxTime > 0 ? 150.0 / _maxTime : 1.0) * _zoom;
+
+        // Фиксированная точка экрана — центр canvas + панорамирование. НЕ пересчитывается по bbox фигуры.
         double offsetX = canvasW / 2 + _panOffsetX;
-        double offsetY = canvasH * 0.75 + _panOffsetY;
+        double offsetY = canvasH / 2 + _panOffsetY;
 
         (double sx, double sy) Project(double x, double z, double y)
         {
-            double rx = x * cosA - z * sinA;
-            double rz = x * sinA + z * cosA;
+            double dx = x - cx;
+            double dz = z - cz;
 
+            double rx = dx * cosA - dz * sinA;
+            double rz = dx * sinA + dz * cosA;
+
+            // Вычитаем _pivotHeight ДО умножения на heightScale — тогда опорная точка (cx, cz, _pivotHeight)
+            // всегда проецируется в (0,0) независимо от угла поворота. Это и есть та самая "ось вращения".
             double screenX = (rx - rz) * scale * Math.Cos(Math.PI / 6) + offsetX;
-            double screenY = (rx + rz) * scale * Math.Sin(Math.PI / 6) - y * heightScale + offsetY;
+            double screenY = (rx + rz) * scale * Math.Sin(Math.PI / 6) - (y - _pivotHeight) * heightScale + offsetY;
             return (screenX, screenY);
         }
 
-        // --- Опорная плоскость (пол) на высоте 0, чтобы легче считывалась перспектива ---
         var floorEdges = new (int i0, int j0, int i1, int j1)[]
         {
             (0, 0, rows - 1, 0),
@@ -126,12 +232,10 @@ public partial class MatrixSurfaceWindow : Window
             });
         }
 
-        // --- Подписи осей: минимум и максимум по n и по m ---
         AddAxisLabel(Project(0, 0, 0), $"n={_nValues[0]}, m={_mValues[0]}");
         AddAxisLabel(Project(rows - 1, 0, 0), $"n={_nValues[^1]}");
         AddAxisLabel(Project(0, cols - 1, 0), $"m={_mValues[^1]}");
 
-        // --- Сама поверхность ---
         var quads = new List<(Polygon poly, double depth)>();
 
         for (int i = 0; i < rows - 1; i++)
