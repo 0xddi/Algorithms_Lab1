@@ -306,7 +306,7 @@ public partial class MainWindow : Window
         RenderIndividualCharts(selectedTasks);
         if (_lastMatrixResults.Any())
         {
-            RenderMatrixHeatmap(_lastMatrixResults);
+            new MatrixSurfaceWindow(_lastMatrixResults).Show();
         }
 
         _historyWindow?.LoadHistoryFromDb();
@@ -391,12 +391,11 @@ public partial class MainWindow : Window
         {
             RenderComparisonCharts(CurrentLoadedSessions);
         }
-        else if (_lastExecutedTasks.Any() || _lastMatrixResults.Any())
+        else if (_lastExecutedTasks.Any())
         {
             PlotsPanel.Children.Clear();
             _activePlots.Clear();
             RenderIndividualCharts(_lastExecutedTasks);
-            if (_lastMatrixResults.Any()) RenderMatrixHeatmap(_lastMatrixResults);
         }
     }
     
