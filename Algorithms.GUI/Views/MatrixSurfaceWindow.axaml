@@ -1,0 +1,45 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Algorithms.GUI.Views.MatrixSurfaceWindow"
+        Title="3D: время умножения матриц от n и m" Width="1000" Height="750"
+        RequestedThemeVariant="Dark">
+    <Window.Background>
+        <SolidColorBrush Color="#1E1E1E"/>
+    </Window.Background>
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="15">
+            <TextBlock Text="Угол поворота:" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+            <Slider Name="RotationSlider" Minimum="0" Maximum="360" Value="270" Width="250"
+                    ValueChanged="RotationSlider_ValueChanged"/>
+            <Button Content="Сбросить вид" Click="ResetViewButton_Click"/>
+            <TextBlock Text="Колесо мыши — масштаб, ЛКМ — перемещение, ПКМ — вращение"
+                       Foreground="#888888" VerticalAlignment="Center" FontSize="11"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,100">
+            <Canvas Name="DrawCanvas" Grid.Column="0" Background="#1E1E1E" ClipToBounds="True"
+                    PointerWheelChanged="DrawCanvas_PointerWheelChanged"
+                    PointerPressed="DrawCanvas_PointerPressed"
+                    PointerMoved="DrawCanvas_PointerMoved"
+                    PointerReleased="DrawCanvas_PointerReleased"/>
+
+            <StackPanel Grid.Column="1" Margin="12" Spacing="4">
+                <TextBlock Text="Время (мс)" Foreground="#CCCCCC" FontSize="11"
+                           HorizontalAlignment="Center" FontWeight="Bold"/>
+                <TextBlock Name="LegendMaxText" Text="0" Foreground="#CCCCCC" FontSize="10"
+                           HorizontalAlignment="Center"/>
+                <Border Width="24" Height="260" CornerRadius="3">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Offset="0" Color="#FF0000"/>
+                            <GradientStop Offset="0.5" Color="#00FF00"/>
+                            <GradientStop Offset="1" Color="#0000FF"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <TextBlock Name="LegendMinText" Text="0" Foreground="#CCCCCC" FontSize="10"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
