@@ -136,7 +136,10 @@
 
             <!-- Область графиков -->
             <ScrollViewer Grid.Row="1" Margin="10">
-                <WrapPanel Name="PlotsPanel" Orientation="Horizontal" HorizontalAlignment="Left" />
+                <StackPanel Spacing="8">
+                    <StackPanel Name="MatrixPanelHost" Orientation="Vertical" Spacing="8"/>
+                    <WrapPanel Name="PlotsPanel" Orientation="Horizontal" HorizontalAlignment="Left" />
+                </StackPanel>
             </ScrollViewer>
             
         </Grid>

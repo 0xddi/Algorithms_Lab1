@@ -156,7 +156,9 @@ public partial class MainWindow : Window
 
         var border = new Border
         {
-            Width = 620, Height = 480, Margin = new Avalonia.Thickness(8),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Height = 520,
+            Margin = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(4),
             Background = SolidColorBrush.Parse("#252526"),
             BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
@@ -173,11 +175,15 @@ public partial class MainWindow : Window
             Margin = new Avalonia.Thickness(4, 2, 0, 0)
         });
 
-        var control = new MatrixSurfaceControl { Height = 440 };
+        var control = new MatrixSurfaceControl
+        {
+            Height = 480,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
         stack.Children.Add(control);
 
         border.Child = stack;
-        PlotsPanel.Children.Add(border);
+        MatrixPanelHost.Children.Add(border);
         control.SetResults(results);
     }
     
@@ -288,6 +294,7 @@ public partial class MainWindow : Window
         ProgressIndicator.IsVisible = true;
         StatusText.Text = "Выполняются замеры...";
         PlotsPanel.Children.Clear();
+        MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
 
         _benchmarker = new Benchmarker(inputData);
@@ -350,6 +357,7 @@ public partial class MainWindow : Window
     private void RenderIndividualCharts(List<BenchmarkTask> tasks)
     {
         PlotsPanel.Children.Clear();
+        MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
 
         bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
@@ -475,6 +483,7 @@ public partial class MainWindow : Window
 public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
 {
     PlotsPanel.Children.Clear();
+    MatrixPanelHost.Children.Clear();
     _activePlots.Clear();
 
     if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
