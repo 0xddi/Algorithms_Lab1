@@ -478,6 +478,13 @@ public partial class MainWindow : Window
         }
         else
         {
+            // Если окно было свернуто, разворачиваем его обратно
+            if (_historyWindow.WindowState == WindowState.Minimized)
+            {
+                _historyWindow.WindowState = WindowState.Normal;
+            }
+
+            // Выводим окно поверх остальных и передаем ему фокус
             _historyWindow.Activate();
         }
     }
