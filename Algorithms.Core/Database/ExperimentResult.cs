@@ -13,6 +13,11 @@ public class ExperimentResult
     public int N { get; set; }
     
     /// <summary>
+    /// Используется только для двухпараметрических экспериментов (умножение матриц); null для остальных
+    /// </summary>
+    public int? M { get; set; }
+    
+    /// <summary>
     /// Номер запуска (1..5). Если 0 — это усредненный/кэшированный результат.
     /// </summary>
     public int RunNumber { get; set; } 

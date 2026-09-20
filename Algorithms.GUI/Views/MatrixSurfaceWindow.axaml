@@ -1,0 +1,35 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Algorithms.GUI.Views.MatrixSurfaceControl">
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6" Spacing="8">
+            <TextBlock Text="Угол:" Foreground="#CCCCCC" VerticalAlignment="Center" FontSize="11"/>
+            <Slider Name="RotationSlider" Minimum="0" Maximum="360" Value="270" Width="130"
+                    ValueChanged="RotationSlider_ValueChanged"/>
+            <Button Content="Сброс" Click="ResetViewButton_Click" Padding="6,1" FontSize="11"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,50">
+            <Canvas Name="DrawCanvas" Grid.Column="0" Background="#1E1E1E" ClipToBounds="True"
+                    PointerWheelChanged="DrawCanvas_PointerWheelChanged"
+                    PointerPressed="DrawCanvas_PointerPressed"
+                    PointerMoved="DrawCanvas_PointerMoved"
+                    PointerReleased="DrawCanvas_PointerReleased"/>
+
+            <StackPanel Grid.Column="1" Margin="4" Spacing="2">
+                <TextBlock Text="T,мс" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
+                <TextBlock Name="LegendMaxText" Text="0" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
+                <Border Width="14" Height="160" CornerRadius="3">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                            <GradientStop Offset="0" Color="#FF0000"/>
+                            <GradientStop Offset="0.5" Color="#00FF00"/>
+                            <GradientStop Offset="1" Color="#0000FF"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <TextBlock Name="LegendMinText" Text="0" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

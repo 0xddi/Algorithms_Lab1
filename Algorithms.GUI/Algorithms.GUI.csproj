@@ -5,6 +5,7 @@
         <LangVersion>14.0</LangVersion>
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaCheckDiagnosticsConflict>false</AvaloniaCheckDiagnosticsConflict>
     </PropertyGroup>
 
     <ItemGroup>
