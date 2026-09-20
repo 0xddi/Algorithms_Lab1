@@ -326,7 +326,9 @@ public partial class MainWindow : Window
                 {
                     var a = MatrixUtils.GenerateRandomMatrix(n, m);
                     var b = MatrixUtils.GenerateRandomMatrix(m, n);
-                    return new MatrixMultiplicationAlgorithm((a, b)).RunBench(5);
+                    // Очень важное изменение!
+                    // Здесь 1 прогон вместе 5, ибо слишком долго приходится ждать
+                    return new MatrixMultiplicationAlgorithm((a, b)).RunBench(1);
                 });
 
                 var nValues = Enumerable.Range(1, matrixNMax / matrixStep).Select(i => i * matrixStep);

@@ -20,6 +20,10 @@ public class MatrixBenchmarker
     public void Run(IEnumerable<int> nValues, IEnumerable<int> mValues, bool useCache = true)
     {
         using var db = new AppDbContext();
+
+        // Отключаем автоматическое отслеживание изменений для ускорения массовой вставки
+        db.ChangeTracker.AutoDetectChangesEnabled = false;
+
         var experimentDate = DateTime.Now;
 
         var cachedData = useCache
@@ -30,6 +34,9 @@ public class MatrixBenchmarker
                     g => (g.Key.N, g.Key.M),
                     g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs)
             : new Dictionary<(int N, int M), double>();
+
+        // Временный список для накопления результатов
+        var newRecords = new List<ExperimentResult>();
 
         foreach (int n in nValues)
         {
@@ -44,7 +51,7 @@ public class MatrixBenchmarker
                 double avgTimeMs = _runMeasurement(n, m);
                 Results.Add(new MatrixBenchmarkResult(n, m, avgTimeMs));
 
-                db.Results.Add(new ExperimentResult
+                newRecords.Add(new ExperimentResult
                 {
                     AlgorithmName = AlgorithmName,
                     N = n,
@@ -54,9 +61,25 @@ public class MatrixBenchmarker
                     ExperimentDate = experimentDate,
                     StepCount = null
                 });
+
+                // Пакетное сохранение (например, каждые 5000 записей), чтобы избежать переполнения памяти
+                if (newRecords.Count >= 5000)
+                {
+                    db.Results.AddRange(newRecords);
+                    db.SaveChanges();
+                    db.ChangeTracker.Clear(); // Сбрасываем кэш трекера для высвобождения памяти
+                    newRecords.Clear();
+                }
             }
         }
 
-        db.SaveChanges();
+        // Сохраняем оставшиеся записи
+        if (newRecords.Any())
+        {
+            db.Results.AddRange(newRecords);
+            db.SaveChanges();
+        }
+
+        db.ChangeTracker.AutoDetectChangesEnabled = true;
     }
 }
