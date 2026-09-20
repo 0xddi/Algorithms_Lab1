@@ -501,8 +501,11 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
 
         if (isMatrixAlgo)
         {
-            foreach (var session in sessionsToCompare)
+            var seriesList = new List<MatrixSeries>();
+
+            for (int i = 0; i < sessionsToCompare.Count; i++)
             {
+                var session = sessionsToCompare[i];
                 var sessionMatrixResults = session.Results
                     .Where(r => r.AlgorithmName == algoName && r.M.HasValue)
                     .Select(r => new MatrixBenchmarkResult(r.N, r.M!.Value, r.ElapsedTimeMs))
@@ -510,11 +513,27 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
 
                 if (sessionMatrixResults.Any())
                 {
-                    RenderMatrixPanel(sessionMatrixResults, $"Умножение матриц — {session.Date:g}");
+                    var colorHex = colors[i % colors.Length];
+                    var color = Color.Parse(colorHex);
+                    seriesList.Add(new MatrixSeries
+                    {
+                        Name = $"№{i + 1} ({session.Date:g})",
+                        Results = sessionMatrixResults,
+                        Color = color
+                    });
                 }
             }
 
-            continue; // <-- теперь continue закрывает именно этот if, ничего больше не "прячет"
+            if (seriesList.Count > 1)
+            {
+                RenderMatrixPanelForComparison(seriesList, $"{algoName} — Сравнение сессий");
+            }
+            else if (seriesList.Count == 1)
+            {
+                RenderMatrixPanel(seriesList[0].Results, $"{algoName} — {seriesList[0].Name}");
+            }
+
+            continue;
         }
 
         var border = new Border
@@ -592,5 +611,41 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
     }
 
     StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+}
+    private void RenderMatrixPanelForComparison(List<MatrixSeries> seriesList, string label = "Умножение матриц — Сравнение сессий")
+{
+    if (seriesList.Count == 0) return;
+
+    var border = new Border
+    {
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        Height = 520,
+        Margin = new Avalonia.Thickness(0),
+        Padding = new Avalonia.Thickness(4),
+        Background = SolidColorBrush.Parse("#252526"),
+        BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+        BorderThickness = new Avalonia.Thickness(1),
+        CornerRadius = new Avalonia.CornerRadius(6)
+    };
+
+    var stack = new StackPanel { Spacing = 2 };
+    stack.Children.Add(new TextBlock
+    {
+        Text = label,
+        Foreground = SolidColorBrush.Parse("#DCDCDC"),
+        FontWeight = Avalonia.Media.FontWeight.SemiBold,
+        Margin = new Avalonia.Thickness(4, 2, 0, 0)
+    });
+
+    var control = new MatrixSurfaceControl
+    {
+        Height = 480,
+        HorizontalAlignment = HorizontalAlignment.Stretch
+    };
+    stack.Children.Add(control);
+
+    border.Child = stack;
+    MatrixPanelHost.Children.Add(border);
+    control.SetMultipleResults(seriesList);
 }
 }

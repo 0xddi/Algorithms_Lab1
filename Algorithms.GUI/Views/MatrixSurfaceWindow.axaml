@@ -9,14 +9,15 @@
             <Button Content="Сброс" Click="ResetViewButton_Click" Padding="6,1" FontSize="11"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,50">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
             <Canvas Name="DrawCanvas" Grid.Column="0" Background="#1E1E1E" ClipToBounds="True"
                     PointerWheelChanged="DrawCanvas_PointerWheelChanged"
                     PointerPressed="DrawCanvas_PointerPressed"
                     PointerMoved="DrawCanvas_PointerMoved"
                     PointerReleased="DrawCanvas_PointerReleased"/>
 
-            <StackPanel Grid.Column="1" Margin="4" Spacing="2">
+            <!-- Легенда Heatmap (для одиночного запуска) -->
+            <StackPanel Name="HeatmapLegendPanel" Grid.Column="1" Width="50" Margin="4" Spacing="2">
                 <TextBlock Text="T,мс" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
                 <TextBlock Name="LegendMaxText" Text="0" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
                 <Border Width="14" Height="160" CornerRadius="3">
@@ -29,6 +30,21 @@
                     </Border.Background>
                 </Border>
                 <TextBlock Name="LegendMinText" Text="0" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Легенда Серий (для сравнения из истории) -->
+            <StackPanel Name="SeriesLegendPanel" Grid.Column="1" IsVisible="False" Margin="6,4" Spacing="4" VerticalAlignment="Top">
+                <TextBlock Text="Сессии" Foreground="#CCCCCC" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <ItemsControl Name="SeriesLegendItems">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:CompileBindings="False">
+                            <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,2">
+                                <Border Width="12" Height="12" CornerRadius="2" Background="{Binding Brush}"/>
+                                <TextBlock Text="{Binding Name}" Foreground="#CCCCCC" FontSize="10" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </Grid>
     </Grid>
