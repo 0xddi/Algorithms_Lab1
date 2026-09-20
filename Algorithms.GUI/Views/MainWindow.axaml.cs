@@ -149,7 +149,38 @@ public partial class MainWindow : Window
 
         return (C, sumSquaredError / k);
     }
+    
+    private void RenderMatrixPanel(List<MatrixBenchmarkResult> results, string label = "Умножение матриц (n×m)")
+    {
+        if (results.Count == 0) return;
 
+        var border = new Border
+        {
+            Width = 620, Height = 480, Margin = new Avalonia.Thickness(8),
+            Padding = new Avalonia.Thickness(4),
+            Background = SolidColorBrush.Parse("#252526"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(6)
+        };
+
+        var stack = new StackPanel { Spacing = 2 };
+        stack.Children.Add(new TextBlock
+        {
+            Text = label,
+            Foreground = SolidColorBrush.Parse("#DCDCDC"),
+            FontWeight = Avalonia.Media.FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(4, 2, 0, 0)
+        });
+
+        var control = new MatrixSurfaceControl { Height = 440 };
+        stack.Children.Add(control);
+
+        border.Child = stack;
+        PlotsPanel.Children.Add(border);
+        control.SetResults(results);
+    }
+    
     private void RenderMatrixHeatmap(List<MatrixBenchmarkResult> results, string titleSuffix = "")
     {
         if (results.Count == 0) return;
@@ -306,7 +337,7 @@ public partial class MainWindow : Window
         RenderIndividualCharts(selectedTasks);
         if (_lastMatrixResults.Any())
         {
-            new MatrixSurfaceWindow(_lastMatrixResults).Show();
+            RenderMatrixPanel(_lastMatrixResults);
         }
 
         _historyWindow?.LoadHistoryFromDb();
@@ -391,24 +422,13 @@ public partial class MainWindow : Window
         {
             RenderComparisonCharts(CurrentLoadedSessions);
         }
-        else if (_lastExecutedTasks.Any())
+        else if (_lastExecutedTasks.Any() || _lastMatrixResults.Any())
         {
-            PlotsPanel.Children.Clear();
-            _activePlots.Clear();
             RenderIndividualCharts(_lastExecutedTasks);
+            if (_lastMatrixResults.Any()) RenderMatrixPanel(_lastMatrixResults);
         }
     }
     
-    private void Show3D_Click(object? sender, RoutedEventArgs e)
-    {
-        if (!_lastMatrixResults.Any())
-        {
-            StatusText.Text = "Сначала запусти эксперимент с матрицами.";
-            return;
-        }
-        new MatrixSurfaceWindow(_lastMatrixResults).Show();
-    }
-
     private void SelectAll_Click(object? sender, RoutedEventArgs e) =>
         AlgorithmItems.ToList().ForEach(i => i.IsSelected = true);
 
@@ -481,7 +501,7 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
 
                 if (sessionMatrixResults.Any())
                 {
-                    RenderMatrixHeatmap(sessionMatrixResults, $" — {session.Date:g}");
+                    RenderMatrixPanel(sessionMatrixResults, $"Умножение матриц — {session.Date:g}");
                 }
             }
 

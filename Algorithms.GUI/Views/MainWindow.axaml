@@ -108,8 +108,6 @@
                         <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True" Foreground="#CCCCCC"/>
                         <Button Name="CompareHistoryButton" Content="Сравнить историю из БД" Click="CompareHistoryButton_Click" 
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30"/>
-                        <Button Name="Show3DButton" Content="3D график (матрицы)" Click="Show3D_Click"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30"/>
                     </StackPanel>
                     
                 </StackPanel>
