@@ -23,16 +23,19 @@ public sealed class MatrixMultiplicationAlgorithm : Algorithm<(double[,] A, doub
 
         double[,] result = new double[n, m];
 
+        // Оптимизированный порядок циклов: i -> t -> j
         for (int i = 0; i < n; i++)
         {
-            for (int j = 0; j < m; j++)
+            for (int t = 0; t < k; t++)
             {
-                double sum = 0;
-                for (int t = 0; t < k; t++)
+                // Кэшируем значение из матрицы A, чтобы не обращаться к нему во внутреннем цикле
+                double a = input.A[i, t]; 
+            
+                for (int j = 0; j < m; j++)
                 {
-                    sum += input.A[i, t] * input.B[t, j];
+                    // Теперь память массива B читается последовательно, а result пишется последовательно
+                    result[i, j] += a * input.B[t, j];
                 }
-                result[i, j] = sum;
             }
         }
     }
