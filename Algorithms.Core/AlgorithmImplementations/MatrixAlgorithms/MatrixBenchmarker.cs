@@ -29,6 +29,7 @@ public class MatrixBenchmarker
         var cachedData = useCache
             ? db.Results
                 .Where(r => r.AlgorithmName == AlgorithmName && r.M != null)
+                .AsEnumerable() // Выгружаем отфильтрованные данные в память
                 .GroupBy(r => new { r.N, M = r.M!.Value })
                 .ToDictionary(
                     g => (g.Key.N, g.Key.M),
@@ -42,32 +43,40 @@ public class MatrixBenchmarker
         {
             foreach (int m in mValues)
             {
+                // 1. Механизм кэширования
                 if (useCache && cachedData.TryGetValue((n, m), out double cachedTime))
                 {
+                    // Добавляем в локальный результат для возврата в UI
                     Results.Add(new MatrixBenchmarkResult(n, m, cachedTime));
-                    continue;
+            
+                    // Пропускаем создание новой записи в БД (как в Benchmarker_4.cs)
+                    continue; 
                 }
 
-                double avgTimeMs = _runMeasurement(n, m);
-                Results.Add(new MatrixBenchmarkResult(n, m, avgTimeMs));
+                // 2. Если в кэше нет — запускаем замер
+                double timeMs = _runMeasurement(n, m);
+        
+                // Добавляем в локальный результат
+                Results.Add(new MatrixBenchmarkResult(n, m, timeMs));
 
+                // 3. Сохраняем в БД ТОЛЬКО новые вычисления
                 newRecords.Add(new ExperimentResult
                 {
                     AlgorithmName = AlgorithmName,
                     N = n,
                     M = m,
                     RunNumber = 0,
-                    ElapsedTimeMs = avgTimeMs,
-                    ExperimentDate = experimentDate,
+                    ElapsedTimeMs = timeMs,
+                    ExperimentDate = experimentDate, 
                     StepCount = null
                 });
 
-                // Пакетное сохранение (например, каждые 5000 записей), чтобы избежать переполнения памяти
+                // Пакетное сохранение (каждые 5000 записей)
                 if (newRecords.Count >= 5000)
                 {
                     db.Results.AddRange(newRecords);
                     db.SaveChanges();
-                    db.ChangeTracker.Clear(); // Сбрасываем кэш трекера для высвобождения памяти
+                    db.ChangeTracker.Clear();
                     newRecords.Clear();
                 }
             }
