@@ -15,6 +15,7 @@ using Algorithms.Core.MatrixAlgorithms;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
 using Algorithms.GUI.Models;
+using Avalonia.Controls.Primitives;
 using ScottPlot.Avalonia;
 
 namespace Algorithms.GUI.Views;
@@ -27,7 +28,7 @@ public partial class MainWindow : Window
     private List<MatrixBenchmarkResult> _lastMatrixResults = new();
 
     private HistoryWindow? _historyWindow;
-    
+
     private CancellationTokenSource? _cancellationTokenSource;
     private DateTime _benchmarkStartTime;
 
@@ -156,13 +157,13 @@ public partial class MainWindow : Window
 
         return (C, sumSquaredError / k);
     }
-    
+
     private void RenderMatrixPanel(List<MatrixBenchmarkResult> results, string label = "Умножение матриц (n×m)")
     {
         if (results.Count == 0) return;
-        
+
         bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
-        
+
         var border = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -224,7 +225,7 @@ public partial class MainWindow : Window
             control.SetResults(results);
         }
     }
-    
+
     private void RenderMatrixHeatmap(List<MatrixBenchmarkResult> results, string titleSuffix = "")
     {
         if (results.Count == 0) return;
@@ -338,6 +339,7 @@ public partial class MainWindow : Window
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
+        ZoomControlPanel.IsVisible = false;
 
         _benchmarker = new Benchmarker(inputData);
         foreach (var task in selectedTasks)
@@ -352,7 +354,7 @@ public partial class MainWindow : Window
         int matrixNMax = int.TryParse(MatrixNMaxBox.Text, out var nm) && nm > 0 ? nm : 200;
         int matrixMMax = int.TryParse(MatrixMMaxBox.Text, out var mm) && mm > 0 ? mm : 200;
         int matrixStep = int.TryParse(MatrixStepBox.Text, out var ms) && ms > 0 ? ms : 10;
-        
+
         var nValues = Enumerable.Range(1, matrixNMax / matrixStep).Select(i => i * matrixStep).ToList();
         var mValues = Enumerable.Range(1, matrixMMax / matrixStep).Select(i => i * matrixStep).ToList();
 
@@ -394,8 +396,8 @@ public partial class MainWindow : Window
             {
                 if (selectedTasks.Count > 0)
                 {
-                    _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5, 
-                                             token: token, progress: progressReporter, progressState: progressState);
+                    _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5,
+                        token: token, progress: progressReporter, progressState: progressState);
                 }
 
                 if (runMatrix)
@@ -409,7 +411,7 @@ public partial class MainWindow : Window
 
                     try
                     {
-                        matrixBench.Run(nValues, mValues, useCache: useCache, 
+                        matrixBench.Run(nValues, mValues, useCache: useCache,
                             token: token, progress: progressReporter, progressState: progressState);
                     }
                     finally
@@ -438,12 +440,14 @@ public partial class MainWindow : Window
             {
                 RenderMatrixPanel(_lastMatrixResults);
             }
+            
+            ZoomControlPanel.IsVisible = _activePlots.Any();
 
             _historyWindow?.LoadHistoryFromDb();
 
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
-            
+
             RunButton.IsEnabled = true;
             CancelButton.IsEnabled = false;
             ProgressPanel.IsVisible = false;
@@ -472,7 +476,7 @@ public partial class MainWindow : Window
         {
             var border = new Border
             {
-                Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
+                Width = 640, Height = 320, Margin = new Avalonia.Thickness(8), // Увеличена ширина для панели легенды
                 Padding = new Avalonia.Thickness(8),
                 Background = SolidColorBrush.Parse("#252526"),
                 BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
@@ -480,12 +484,36 @@ public partial class MainWindow : Window
                 CornerRadius = new Avalonia.CornerRadius(6)
             };
 
+            // Разделяем область на график и панель легенды справа
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, 180") };
+
             var plotControl = new AvaPlot
                 { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
 
             plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
             plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+
+            Grid.SetColumn(plotControl, 0);
+            grid.Children.Add(plotControl);
+
+            // Контейнер легенды (с прокруткой, если элементов слишком много)
+            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var legendPanel = new StackPanel
+            {
+                Spacing = 5, VerticalAlignment = VerticalAlignment.Top, Margin = new Avalonia.Thickness(10, 10, 5, 5)
+            };
+            legendScroll.Content = legendPanel;
+
+            Grid.SetColumn(legendScroll, 1);
+            grid.Children.Add(legendScroll);
+
+            var titleText = new TextBlock
+            {
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#FFFFFF"),
+                Margin = new Avalonia.Thickness(0, 0, 0, 5)
+            };
+            legendPanel.Children.Add(titleText);
 
             double[] xs = task.Results.Select(r => (double)r.N).ToArray();
             double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
@@ -495,7 +523,9 @@ public partial class MainWindow : Window
                 var empiricalScatter = plotControl.Plot.Add.Scatter(xs, ys);
                 empiricalScatter.LineWidth = 2;
                 empiricalScatter.Color = ScottPlot.Color.FromHex("#009688");
-                empiricalScatter.LegendText = "Эксперимент";
+
+                legendPanel.Children.Add(
+                    CreateCustomLegendItem(plotControl, empiricalScatter, "Эксперимент", "#009688"));
 
                 if (showApprox)
                 {
@@ -503,25 +533,22 @@ public partial class MainWindow : Window
                     var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                     approxScatter.LineWidth = 2;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800"); // Выделяющийся оранжевый цвет
-                    approxScatter.MarkerSize = 0; // Линия без маркеров
-                    approxScatter.LegendText = $"Теория (MSE: {mse:E2})";
+                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                    approxScatter.MarkerSize = 0;
 
-                    plotControl.Plot.ShowLegend();
-                    plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
+                    legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
+                        $"Теория (MSE: {mse:E2})", "#FF9800"));
                 }
-                
-                var seriesData = new List<(double[], double[], string)>
-                {
-                    (xs, ys, "Эксперимент")
-                };
+
+                var seriesData = new List<(double[], double[], string)> { (xs, ys, "Эксперимент") };
                 if (showApprox)
                 {
                     var (_, _, yApprox) = FitApproximation(xs, ys, task.Name);
                     seriesData.Add((xs, yApprox, "Теория"));
                 }
+
                 AttachHoverTooltip(plotControl, seriesData);
-                
+
                 plotControl.Plot.Axes.AutoScale();
             }
 
@@ -530,10 +557,67 @@ public partial class MainWindow : Window
             plotControl.Plot.YLabel("Время (мс)");
             plotControl.Refresh();
 
-            border.Child = plotControl;
+            border.Child = grid;
             PlotsPanel.Children.Add(border);
             _activePlots.Add(plotControl);
         }
+        
+        ZoomControlPanel.IsVisible = _activePlots.Any();
+    }
+
+
+    private Control CreateCustomLegendItem(AvaPlot plotControl, ScottPlot.Plottables.Scatter scatter, string name,
+        string colorHex)
+    {
+        var panel = new StackPanel
+            { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Avalonia.Thickness(0, 4) };
+
+        // Кнопка-глазик
+        var eyeButton = new Avalonia.Controls.Primitives.ToggleButton
+        {
+            IsChecked = true, // По умолчанию график отображается
+            Content = "👁",
+            Padding = new Avalonia.Thickness(4, 2),
+            Background = Brushes.Transparent,
+            Foreground = SolidColorBrush.Parse("#CCCCCC"),
+            FontSize = 14,
+            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+        };
+
+        eyeButton.Click += (s, e) =>
+        {
+            bool isVisible = eyeButton.IsChecked ?? false;
+            scatter.IsVisible = isVisible;
+            eyeButton.Opacity = isVisible ? 1.0 : 0.4;
+            plotControl.Refresh();
+        };
+
+        // Цветовой индикатор
+        var colorBox = new Border
+        {
+            Width = 14,
+            Height = 14,
+            Background = SolidColorBrush.Parse(colorHex),
+            CornerRadius = new Avalonia.CornerRadius(3),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+        };
+
+        // Текст (Название алгоритма / MSE аппроксимации)
+        var textBlock = new TextBlock
+        {
+            Text = name,
+            Foreground = SolidColorBrush.Parse("#E0E0E0"),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            FontSize = 12,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            MaxWidth = 130
+        };
+
+        panel.Children.Add(eyeButton);
+        panel.Children.Add(colorBox);
+        panel.Children.Add(textBlock);
+
+        return panel;
     }
 
     /// <summary>
@@ -553,7 +637,7 @@ public partial class MainWindow : Window
             if (_lastMatrixResults.Any()) RenderMatrixPanel(_lastMatrixResults);
         }
     }
-    
+
     private void SelectAll_Click(object? sender, RoutedEventArgs e) =>
         AlgorithmItems.ToList().ForEach(i => i.IsSelected = true);
 
@@ -604,279 +688,304 @@ public partial class MainWindow : Window
         }
     }
 
-public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
-{
-    PlotsPanel.Children.Clear();
-    MatrixPanelHost.Children.Clear();
-    _activePlots.Clear();
-
-    if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
-
-    bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
-    var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
-    var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
-
-    var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
-
-    foreach (var algoName in uniqueAlgorithms)
+    public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
     {
-        var algoAllResults = allResults.Where(r => r.AlgorithmName == algoName).ToList();
-        bool isMatrixAlgo = algoAllResults.Any(r => r.M.HasValue);
+        PlotsPanel.Children.Clear();
+        MatrixPanelHost.Children.Clear();
+        _activePlots.Clear();
 
-        if (isMatrixAlgo)
+        if (sessionsToCompare == null || !sessionsToCompare.Any())
         {
-            var seriesList = new List<MatrixSeries>();
+            ZoomControlPanel.IsVisible = false;
+            return;
+        }
+
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+        var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
+        var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
+
+        var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
+
+        foreach (var algoName in uniqueAlgorithms)
+        {
+            var algoAllResults = allResults.Where(r => r.AlgorithmName == algoName).ToList();
+            bool isMatrixAlgo = algoAllResults.Any(r => r.M.HasValue);
+
+            if (isMatrixAlgo)
+            {
+                var seriesList = new List<MatrixSeries>();
+
+                for (int i = 0; i < sessionsToCompare.Count; i++)
+                {
+                    var session = sessionsToCompare[i];
+                    var sessionMatrixResults = session.Results
+                        .Where(r => r.AlgorithmName == algoName && r.M.HasValue)
+                        .Select(r => new MatrixBenchmarkResult(r.N, r.M!.Value, r.ElapsedTimeMs))
+                        .ToList();
+
+                    if (sessionMatrixResults.Any())
+                    {
+                        var colorHex = colors[i % colors.Length];
+                        var color = Color.Parse(colorHex);
+                        seriesList.Add(new MatrixSeries
+                        {
+                            Name = $"№{i + 1} ({session.Date:g})",
+                            Results = sessionMatrixResults,
+                            Color = color
+                        });
+                    }
+                }
+
+                if (showApprox && seriesList.Any())
+                {
+                    var displaySeriesList = new List<MatrixSeries>();
+                    for (int i = 0; i < seriesList.Count; i++)
+                    {
+                        var s = seriesList[i];
+                        displaySeriesList.Add(s);
+
+                        var (c, mse) = FitMatrixApproximation(s.Results);
+                        var approxResults = s.Results
+                            .Select(r =>
+                                new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
+                            .ToList();
+
+                        string approxName = seriesList.Count > 1
+                            ? $"Теория №{i + 1} (MSE: {mse:E1})"
+                            : $"Теория (MSE: {mse:E1})";
+
+                        displaySeriesList.Add(new MatrixSeries
+                        {
+                            Name = approxName,
+                            Results = approxResults,
+                            // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
+                            Color = seriesList.Count > 1
+                                ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B)
+                                : Color.Parse("#FF9800")
+                        });
+                    }
+
+                    RenderMatrixPanelForComparison(displaySeriesList, $"{algoName} — Сравнение сессий");
+                }
+                else if (seriesList.Count > 1)
+                {
+                    RenderMatrixPanelForComparison(seriesList, $"{algoName} — Сравнение сессий");
+                }
+                else if (seriesList.Count == 1)
+                {
+                    RenderMatrixPanel(seriesList[0].Results, $"{algoName} — {seriesList[0].Name}");
+                }
+
+                continue;
+            }
+
+            var border = new Border
+            {
+                Width = 640, Height = 320, Margin = new Avalonia.Thickness(8),
+                Padding = new Avalonia.Thickness(8),
+                Background = SolidColorBrush.Parse("#252526"),
+                BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(6)
+            };
+
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, 180") };
+
+            var plotControl = new AvaPlot
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch
+            };
+            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
+            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
+            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+
+            Grid.SetColumn(plotControl, 0);
+            grid.Children.Add(plotControl);
+
+            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var legendPanel = new StackPanel
+            {
+                Spacing = 5, VerticalAlignment = VerticalAlignment.Top, Margin = new Avalonia.Thickness(10, 10, 5, 5)
+            };
+            legendScroll.Content = legendPanel;
+
+            Grid.SetColumn(legendScroll, 1);
+            grid.Children.Add(legendScroll);
+
+            var titleText = new TextBlock
+            {
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#FFFFFF"),
+                Margin = new Avalonia.Thickness(0, 0, 0, 5)
+            };
+            legendPanel.Children.Add(titleText);
+
+            var sessionsWithAlgo =
+                sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
+            bool isShared = sessionsWithAlgo.Count > 1;
+
+            var seriesData = new List<(double[], double[], string)>();
 
             for (int i = 0; i < sessionsToCompare.Count; i++)
             {
                 var session = sessionsToCompare[i];
-                var sessionMatrixResults = session.Results
-                    .Where(r => r.AlgorithmName == algoName && r.M.HasValue)
-                    .Select(r => new MatrixBenchmarkResult(r.N, r.M!.Value, r.ElapsedTimeMs))
+                var sessionAlgoResults = session.Results
+                    .Where(r => r.AlgorithmName == algoName)
+                    .OrderBy(r => r.N)
                     .ToList();
 
-                if (sessionMatrixResults.Any())
+                if (!sessionAlgoResults.Any()) continue;
+
+                double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
+                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+
+                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
+                scatter.LineWidth = 2;
+
+                string colorHex = isShared ? colors[i % colors.Length] : "#009688";
+                scatter.Color = ScottPlot.Color.FromHex(colorHex);
+
+                string legendText = isShared ? $"№ {i + 1}" : "Эксперимент";
+                legendPanel.Children.Add(CreateCustomLegendItem(plotControl, scatter, legendText, colorHex));
+                seriesData.Add((xs, ys, legendText));
+
+                if (showApprox && xs.Length > 0)
                 {
-                    var colorHex = colors[i % colors.Length];
-                    var color = Color.Parse(colorHex);
-                    seriesList.Add(new MatrixSeries
-                    {
-                        Name = $"№{i + 1} ({session.Date:g})",
-                        Results = sessionMatrixResults,
-                        Color = color
-                    });
+                    var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
+                    var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
+                    approxScatter.LineWidth = 1.5f;
+                    approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
+
+                    string approxColorHex = isShared ? colors[i % colors.Length] : "#FF9800";
+                    approxScatter.Color = ScottPlot.Color.FromHex(approxColorHex);
+                    approxScatter.MarkerSize = 0;
+
+                    string approxLegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
+                    legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter, approxLegendText,
+                        approxColorHex));
+                    seriesData.Add((xs, yApprox, isShared ? $"Теория №{i + 1}" : "Теория"));
                 }
             }
 
-            if (showApprox && seriesList.Any())
-            {
-                var displaySeriesList = new List<MatrixSeries>();
-                for (int i = 0; i < seriesList.Count; i++)
-                {
-                    var s = seriesList[i];
-                    displaySeriesList.Add(s);
+            AttachHoverTooltip(plotControl, seriesData);
 
-                    var (c, mse) = FitMatrixApproximation(s.Results);
-                    var approxResults = s.Results
-                        .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
-                        .ToList();
+            plotControl.Plot.Title(algoName, size: null);
+            plotControl.Plot.XLabel("Размер массива (N)");
+            plotControl.Plot.YLabel("Время (мс)");
 
-                    string approxName = seriesList.Count > 1 
-                        ? $"Теория №{i + 1} (MSE: {mse:E1})" 
-                        : $"Теория (MSE: {mse:E1})";
+            plotControl.Plot.Axes.AutoScale();
+            plotControl.Refresh();
 
-                    displaySeriesList.Add(new MatrixSeries
-                    {
-                        Name = approxName,
-                        Results = approxResults,
-                        // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
-                        Color = seriesList.Count > 1 
-                            ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B) 
-                            : Color.Parse("#FF9800")
-                    });
-                }
-
-                RenderMatrixPanelForComparison(displaySeriesList, $"{algoName} — Сравнение сессий");
-            }
-            else if (seriesList.Count > 1)
-            {
-                RenderMatrixPanelForComparison(seriesList, $"{algoName} — Сравнение сессий");
-            }
-            else if (seriesList.Count == 1)
-            {
-                RenderMatrixPanel(seriesList[0].Results, $"{algoName} — {seriesList[0].Name}");
-            }
-
-            continue;
+            border.Child = grid;
+            PlotsPanel.Children.Add(border);
+            _activePlots.Add(plotControl);
         }
+
+        StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+        ZoomControlPanel.IsVisible = _activePlots.Any();
+    }
+
+    private void RenderMatrixPanelForComparison(List<MatrixSeries> seriesList,
+        string label = "Умножение матриц — Сравнение сессий")
+    {
+        if (seriesList.Count == 0) return;
 
         var border = new Border
         {
-            Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
-            Padding = new Avalonia.Thickness(8),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Height = 520,
+            Margin = new Avalonia.Thickness(0),
+            Padding = new Avalonia.Thickness(4),
             Background = SolidColorBrush.Parse("#252526"),
             BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(6)
         };
 
-        var plotControl = new AvaPlot
+        var stack = new StackPanel { Spacing = 2 };
+        stack.Children.Add(new TextBlock
         {
-            HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch
+            Text = label,
+            Foreground = SolidColorBrush.Parse("#DCDCDC"),
+            FontWeight = Avalonia.Media.FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(4, 2, 0, 0)
+        });
+
+        var control = new MatrixSurfaceControl
+        {
+            Height = 480,
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-        plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+        stack.Children.Add(control);
 
-        var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
-        bool isShared = sessionsWithAlgo.Count > 1;
-        
-        var seriesData = new List<(double[], double[], string)>();
+        border.Child = stack;
+        MatrixPanelHost.Children.Add(border);
+        control.SetMultipleResults(seriesList);
+    }
 
-        for (int i = 0; i < sessionsToCompare.Count; i++)
+    private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries)
+    {
+        ToolTip.SetShowDelay(plotControl, 0);
+
+        plotControl.PointerMoved += (sender, e) =>
         {
-            var session = sessionsToCompare[i];
-            var sessionAlgoResults = session.Results
-                .Where(r => r.AlgorithmName == algoName)
-                .OrderBy(r => r.N)
-                .ToList();
+            // 1. Получаем координаты мыши и переводим в систему координат данных графика
+            var position = e.GetPosition(plotControl);
+            var mousePixel = new ScottPlot.Pixel((float)position.X, (float)position.Y);
+            var mouseCoords = plotControl.Plot.GetCoordinates(mousePixel);
 
-            if (!sessionAlgoResults.Any()) continue;
+            // 2. Получаем текущие видимые границы осей для нормализации масштаба
+            var limits = plotControl.Plot.Axes.GetLimits();
+            double xRange = limits.Right - limits.Left;
+            double yRange = limits.Top - limits.Bottom;
 
-            double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
-            double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+            if (xRange <= 0 || yRange <= 0) return;
 
-            var scatter = plotControl.Plot.Add.Scatter(xs, ys);
-            scatter.LineWidth = 2;
+            double minDistance = double.MaxValue;
+            double closestX = 0;
+            double closestY = 0;
+            string closestName = "";
+            bool found = false;
 
-            if (isShared)
+            // 3. Ищем ближайшую точку без тяжелых пиксельных конвертаций
+            foreach (var series in dataSeries)
             {
-                scatter.Color = ScottPlot.Color.FromHex(colors[i % colors.Length]);
-                scatter.LegendText = $"№ {i + 1}";
+                for (int i = 0; i < series.xs.Length; i++)
+                {
+                    // Нормализуем разницу от 0 до 1 относительно текущего зума графика
+                    double dx = (series.xs[i] - mouseCoords.X) / xRange;
+                    double dy = (series.ys[i] - mouseCoords.Y) / yRange;
+
+                    // Квадрат расстояния в нормализованных координатах
+                    double dist = dx * dx + dy * dy;
+
+                    // Порог прилипания ~0.001 (соответствует радиусу около 3% от размера окна)
+                    if (dist < 0.001 && dist < minDistance)
+                    {
+                        minDistance = dist;
+                        closestX = series.xs[i];
+                        closestY = series.ys[i];
+                        closestName = series.name;
+                        found = true;
+                    }
+                }
+            }
+
+            // 4. Управляем нативной всплывающей подсказкой Avalonia
+            if (found)
+            {
+                string text = string.IsNullOrEmpty(closestName)
+                    ? $"N: {closestX}\nВремя: {closestY:F3} мс"
+                    : $"{closestName}\nN: {closestX}\nВремя: {closestY:F3} мс";
+
+                ToolTip.SetTip(plotControl, text);
+                ToolTip.SetIsOpen(plotControl, true);
             }
             else
             {
-                scatter.Color = ScottPlot.Color.FromHex("#009688");
+                ToolTip.SetIsOpen(plotControl, false);
             }
-            
-            seriesData.Add((xs, ys, isShared ? $"№ {i + 1}" : "Эксперимент"));
-            
-            if (showApprox && xs.Length > 0)
-            {
-                var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
-                var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
-                approxScatter.LineWidth = 1.5f;
-                approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                approxScatter.Color = isShared 
-                    ? ScottPlot.Color.FromHex(colors[i % colors.Length]) 
-                    : ScottPlot.Color.FromHex("#FF9800");
-                approxScatter.MarkerSize = 0;
-                approxScatter.LegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
-                
-                seriesData.Add((xs, yApprox, isShared ? $"Теория №{i + 1}" : "Теория"));
-            }
-        }
-        
-        AttachHoverTooltip(plotControl, seriesData);
-        
-        plotControl.Plot.ShowLegend();
-        plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
+        };
 
-        plotControl.Plot.Title(algoName, size: null);
-        plotControl.Plot.XLabel("Размер массива (N)");
-        plotControl.Plot.YLabel("Время (мс)");
-
-        plotControl.Plot.Axes.AutoScale();
-        plotControl.Refresh();
-
-        border.Child = plotControl;
-        PlotsPanel.Children.Add(border);
-        _activePlots.Add(plotControl);
+        plotControl.PointerExited += (sender, e) => ToolTip.SetIsOpen(plotControl, false);
     }
-
-    StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
-}
-    private void RenderMatrixPanelForComparison(List<MatrixSeries> seriesList, string label = "Умножение матриц — Сравнение сессий")
-{
-    if (seriesList.Count == 0) return;
-
-    var border = new Border
-    {
-        HorizontalAlignment = HorizontalAlignment.Stretch,
-        Height = 520,
-        Margin = new Avalonia.Thickness(0),
-        Padding = new Avalonia.Thickness(4),
-        Background = SolidColorBrush.Parse("#252526"),
-        BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
-        BorderThickness = new Avalonia.Thickness(1),
-        CornerRadius = new Avalonia.CornerRadius(6)
-    };
-
-    var stack = new StackPanel { Spacing = 2 };
-    stack.Children.Add(new TextBlock
-    {
-        Text = label,
-        Foreground = SolidColorBrush.Parse("#DCDCDC"),
-        FontWeight = Avalonia.Media.FontWeight.SemiBold,
-        Margin = new Avalonia.Thickness(4, 2, 0, 0)
-    });
-
-    var control = new MatrixSurfaceControl
-    {
-        Height = 480,
-        HorizontalAlignment = HorizontalAlignment.Stretch
-    };
-    stack.Children.Add(control);
-
-    border.Child = stack;
-    MatrixPanelHost.Children.Add(border);
-    control.SetMultipleResults(seriesList);
-}
-    private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries)
-{
-    ToolTip.SetShowDelay(plotControl, 0);
-
-    plotControl.PointerMoved += (sender, e) =>
-    {
-        // 1. Получаем координаты мыши и переводим в систему координат данных графика
-        var position = e.GetPosition(plotControl);
-        var mousePixel = new ScottPlot.Pixel((float)position.X, (float)position.Y);
-        var mouseCoords = plotControl.Plot.GetCoordinates(mousePixel);
-
-        // 2. Получаем текущие видимые границы осей для нормализации масштаба
-        var limits = plotControl.Plot.Axes.GetLimits();
-        double xRange = limits.Right - limits.Left;
-        double yRange = limits.Top - limits.Bottom;
-
-        if (xRange <= 0 || yRange <= 0) return;
-
-        double minDistance = double.MaxValue;
-        double closestX = 0;
-        double closestY = 0;
-        string closestName = "";
-        bool found = false;
-
-        // 3. Ищем ближайшую точку без тяжелых пиксельных конвертаций
-        foreach (var series in dataSeries)
-        {
-            for (int i = 0; i < series.xs.Length; i++)
-            {
-                // Нормализуем разницу от 0 до 1 относительно текущего зума графика
-                double dx = (series.xs[i] - mouseCoords.X) / xRange;
-                double dy = (series.ys[i] - mouseCoords.Y) / yRange;
-                
-                // Квадрат расстояния в нормализованных координатах
-                double dist = dx * dx + dy * dy;
-
-                // Порог прилипания ~0.001 (соответствует радиусу около 3% от размера окна)
-                if (dist < 0.001 && dist < minDistance)
-                {
-                    minDistance = dist;
-                    closestX = series.xs[i];
-                    closestY = series.ys[i];
-                    closestName = series.name;
-                    found = true;
-                }
-            }
-        }
-
-        // 4. Управляем нативной всплывающей подсказкой Avalonia
-        if (found)
-        {
-            string text = string.IsNullOrEmpty(closestName)
-                ? $"N: {closestX}\nВремя: {closestY:F3} мс"
-                : $"{closestName}\nN: {closestX}\nВремя: {closestY:F3} мс";
-
-            ToolTip.SetTip(plotControl, text);
-            ToolTip.SetIsOpen(plotControl, true);
-        }
-        else
-        {
-            ToolTip.SetIsOpen(plotControl, false);
-        }
-    };
-
-    plotControl.PointerExited += (sender, e) => ToolTip.SetIsOpen(plotControl, false);
-}
-    
 }
