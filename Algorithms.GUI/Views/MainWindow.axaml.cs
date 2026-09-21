@@ -208,7 +208,7 @@ public partial class MainWindow : Window
                 {
                     Name = $"Теория (MSE: {mse:E2})",
                     Results = approxResults,
-                    Color = Color.Parse("#FF9800")
+                    Color = Color.Parse("#40FF9800") // Первые символы "40" задают высокую прозрачность
                 }
             };
 
@@ -598,7 +598,10 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
                     {
                         Name = approxName,
                         Results = approxResults,
-                        Color = Color.Parse("#FF9800")
+                        // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
+                        Color = seriesList.Count > 1 
+                            ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B) 
+                            : Color.Parse("#FF9800")
                     });
                 }
 
@@ -673,7 +676,9 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
                 var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                 approxScatter.LineWidth = 1.5f;
                 approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                approxScatter.Color = isShared 
+                    ? ScottPlot.Color.FromHex(colors[i % colors.Length]) 
+                    : ScottPlot.Color.FromHex("#FF9800");
                 approxScatter.MarkerSize = 0;
                 approxScatter.LegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
                 
