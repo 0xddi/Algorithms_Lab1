@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -26,6 +27,9 @@ public partial class MainWindow : Window
     private List<MatrixBenchmarkResult> _lastMatrixResults = new();
 
     private HistoryWindow? _historyWindow;
+    
+    private CancellationTokenSource? _cancellationTokenSource;
+    private DateTime _benchmarkStartTime;
 
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
@@ -307,7 +311,6 @@ public partial class MainWindow : Window
     private async void RunButton_Click(object? sender, RoutedEventArgs e)
     {
         var selectedTasks = AlgorithmItems.Where(item => item.IsSelected == true).Select(item => item.Task).ToList();
-
         bool runMatrix = RunMatrixCheckBox.IsChecked ?? true;
 
         if (selectedTasks.Count == 0 && !runMatrix)
@@ -323,15 +326,19 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Подготовка UI к запуску
         RunButton.IsEnabled = false;
-        ProgressIndicator.IsVisible = true;
+        CancelButton.IsEnabled = true;
+        ProgressPanel.IsVisible = true;
+        ProgressIndicator.Value = 0;
+        ProgressPercentText.Text = "0%";
+        EtaText.Text = "Осталось: вычисление...";
         StatusText.Text = "Выполняются замеры...";
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
 
         _benchmarker = new Benchmarker(inputData);
-
         foreach (var task in selectedTasks)
         {
             task.Results.Clear();
@@ -340,53 +347,109 @@ public partial class MainWindow : Window
 
         bool useCache = UseCacheCheckBox.IsChecked ?? true;
 
+        // Расчет параметров матриц для определения общего количества шагов
         int matrixNMax = int.TryParse(MatrixNMaxBox.Text, out var nm) && nm > 0 ? nm : 200;
         int matrixMMax = int.TryParse(MatrixMMaxBox.Text, out var mm) && mm > 0 ? mm : 200;
         int matrixStep = int.TryParse(MatrixStepBox.Text, out var ms) && ms > 0 ? ms : 10;
+        
+        var nValues = Enumerable.Range(1, matrixNMax / matrixStep).Select(i => i * matrixStep).ToList();
+        var mValues = Enumerable.Range(1, matrixMMax / matrixStep).Select(i => i * matrixStep).ToList();
+
+        // Подсчитываем 100% шагов для ETA
+        int totalSteps = selectedTasks.Count * inputData.Length;
+        if (runMatrix) totalSteps += nValues.Count * mValues.Count;
+
+        var progressState = new BenchmarkProgressState { TotalSteps = totalSteps, CurrentStep = 0 };
+        _benchmarkStartTime = DateTime.Now;
+
+        // Обработчик изменения прогресса из фонового потока
+        var progressReporter = new Progress<BenchmarkProgressState>(state =>
+        {
+            double percent = state.TotalSteps > 0 ? ((double)state.CurrentStep / state.TotalSteps) * 100.0 : 0;
+            ProgressIndicator.Value = percent;
+            ProgressPercentText.Text = $"{percent:F1}%";
+
+            var elapsed = DateTime.Now - _benchmarkStartTime;
+            if (percent > 0)
+            {
+                // Линейная аппроксимация оставшегося времени
+                var totalEstimated = TimeSpan.FromTicks((long)(elapsed.Ticks / (percent / 100.0)));
+                var remaining = totalEstimated - elapsed;
+                EtaText.Text = $"Осталось: ~{remaining:hh\\:mm\\:ss}";
+            }
+
+            StatusText.Text = $"Текущая задача: {state.CurrentTaskName} ({state.CurrentStep}/{state.TotalSteps})";
+        });
+
+        // Создаем токен отмены
+        _cancellationTokenSource = new CancellationTokenSource();
+        var token = _cancellationTokenSource.Token;
 
         List<MatrixBenchmarkResult>? matrixResults = null;
 
-        await Task.Run(() =>
+        try
         {
-            if (selectedTasks.Count > 0)
+            await Task.Run(() =>
             {
-                _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5);
-            }
-
-            if (runMatrix)
-            {
-                var matrixBench = new MatrixBenchmarker("Matrix Multiplication (naive)", (n, m) =>
+                if (selectedTasks.Count > 0)
                 {
-                    var a = MatrixUtils.GenerateRandomMatrix(n, m);
-                    var b = MatrixUtils.GenerateRandomMatrix(m, n);
-                    // Очень важное изменение!
-                    // Здесь 1 прогон вместе 5, ибо слишком долго приходится ждать
-                    return new MatrixMultiplicationAlgorithm((a, b)).RunBench(1);
-                });
+                    _benchmarker.RunFiltered(selectedTasks, useCache: useCache, benchCycles: 5, 
+                                             token: token, progress: progressReporter, progressState: progressState);
+                }
 
-                var nValues = Enumerable.Range(1, matrixNMax / matrixStep).Select(i => i * matrixStep);
-                var mValues = Enumerable.Range(1, matrixMMax / matrixStep).Select(i => i * matrixStep);
+                if (runMatrix)
+                {
+                    var matrixBench = new MatrixBenchmarker("Matrix Multiplication (naive)", (n, m) =>
+                    {
+                        var a = MatrixUtils.GenerateRandomMatrix(n, m);
+                        var b = MatrixUtils.GenerateRandomMatrix(m, n);
+                        return new MatrixMultiplicationAlgorithm((a, b)).RunBench(1);
+                    });
 
-                matrixBench.Run(nValues, mValues, useCache: useCache);
-                matrixResults = matrixBench.Results;
-            }
-        });
+                    matrixBench.Run(nValues, mValues, useCache: useCache, 
+                                    token: token, progress: progressReporter, progressState: progressState);
+                    matrixResults = matrixBench.Results;
+                }
+            }, token);
 
-        _lastExecutedTasks = selectedTasks;
-        _lastMatrixResults = matrixResults ?? new List<MatrixBenchmarkResult>();
-        CurrentLoadedSessions.Clear();
-
-        RenderIndividualCharts(selectedTasks);
-        if (_lastMatrixResults.Any())
-        {
-            RenderMatrixPanel(_lastMatrixResults);
+            StatusText.Text = "Вычисления успешно завершены!";
         }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = "Вычисления отменены пользователем. Рассчитанная часть кэширована в БД.";
+        }
+        finally
+        {
+            // Независимо от результата - отрисовываем то, что успели посчитать, и сбрасываем UI
+            _lastExecutedTasks = selectedTasks;
+            _lastMatrixResults = matrixResults ?? new List<MatrixBenchmarkResult>();
+            CurrentLoadedSessions.Clear();
 
-        _historyWindow?.LoadHistoryFromDb();
+            RenderIndividualCharts(selectedTasks);
+            if (_lastMatrixResults.Any())
+            {
+                RenderMatrixPanel(_lastMatrixResults);
+            }
 
-        RunButton.IsEnabled = true;
-        ProgressIndicator.IsVisible = false;
-        StatusText.Text = "Вычисления успешно завершены!";
+            _historyWindow?.LoadHistoryFromDb();
+
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+            
+            RunButton.IsEnabled = true;
+            CancelButton.IsEnabled = false;
+            ProgressPanel.IsVisible = false;
+        }
+    }
+
+    private void CancelButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+        {
+            CancelButton.IsEnabled = false;
+            StatusText.Text = "Остановка вычислений и сохранение кэша...";
+            _cancellationTokenSource.Cancel();
+        }
     }
 
     private void RenderIndividualCharts(List<BenchmarkTask> tasks)
