@@ -24,6 +24,10 @@ namespace Algorithms.GUI.Models
     {
         public string Name { get; set; } = string.Empty;
         public IBrush Brush { get; set; } = Brushes.Teal;
+
+        // Новые свойства для видимости:
+        public bool IsVisible { get; set; } = true;
+        public Action<bool>? OnVisibilityChanged { get; set; }
     }
 }
 
@@ -39,6 +43,8 @@ namespace Algorithms.GUI.Views
             public string Name { get; set; } = string.Empty;
             public double[,] Grid { get; set; } = new double[0, 0];
             public Color Color { get; set; } = Colors.Teal;
+
+            public bool IsVisible { get; set; } = true; // Добавлено
         }
 
         private int[] _nValues = Array.Empty<int>();
@@ -118,6 +124,17 @@ namespace Algorithms.GUI.Views
             RecomputeDefaultZoomAndReset();
         }
 
+        private void LegendEyeButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleButton btn && btn.DataContext is SeriesLegendItem item)
+            {
+                bool isVisible = btn.IsChecked ?? false;
+                btn.Opacity = isVisible ? 1.0 : 0.4;
+                item.IsVisible = isVisible;
+                item.OnVisibilityChanged?.Invoke(isVisible);
+            }
+        }
+
         public void SetMultipleResults(List<MatrixSeries> seriesList)
         {
             if (seriesList == null || seriesList.Count == 0) return;
@@ -151,17 +168,25 @@ namespace Algorithms.GUI.Views
                     }
                 }
 
-                _seriesList.Add(new InternalSeries
+                var internalSeries = new InternalSeries
                 {
                     Name = s.Name,
                     Grid = grid,
-                    Color = s.Color
-                });
+                    Color = s.Color,
+                    IsVisible = true
+                };
+                _seriesList.Add(internalSeries);
 
                 legendItems.Add(new SeriesLegendItem
                 {
                     Name = s.Name,
-                    Brush = new SolidColorBrush(s.Color)
+                    Brush = new SolidColorBrush(s.Color),
+                    IsVisible = true,
+                    OnVisibilityChanged = (isVisible) =>
+                    {
+                        internalSeries.IsVisible = isVisible;
+                        DrawSurface(); // Перерисовываем при нажатии на глазик
+                    }
                 });
             }
 
@@ -215,6 +240,8 @@ namespace Algorithms.GUI.Views
 
             foreach (var series in _seriesList)
             {
+                if (!series.IsVisible) continue;
+                
                 for (int i = 0; i < rows; i++)
                 {
                     for (int j = 0; j < cols; j++)
@@ -369,6 +396,8 @@ namespace Algorithms.GUI.Views
 
             foreach (var series in _seriesList)
             {
+                if (!series.IsVisible) continue;
+                
                 Color fillColor, strokeColor;
                 if (_useHeatmap)
                 {
