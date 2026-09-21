@@ -67,6 +67,7 @@ public partial class MainWindow : Window
         RegisterTaskInfo("Classic Fast Pow",
             slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
         RegisterTaskInfo("Aho-Corasick", slice => new AhoCorasickAlgorithm(slice).RunBench(5)); // Добавлено
+        RegisterTaskInfo("Heap Sort", slice => new HeapSortAlgorithm(slice).RunBench(5));
 
         AlgorithmsList.ItemsSource = AlgorithmItems;
     }
@@ -80,7 +81,7 @@ public partial class MainWindow : Window
         return algoName switch
         {
             "Bubble Sort" or "Naive Polynomial" or "Selection Sort" => n * n, // O(n^2)
-            "Quick Sort" or "Tim Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
+            "Quick Sort" or "Tim Sort" or "Heap Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
             "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial"
                 or "Simple Pow (x^n)" or "Recursive Pow" or "Aho-Corasick" => n, // O(n)
             "Fast Pow" or "Classic Fast Pow" => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
