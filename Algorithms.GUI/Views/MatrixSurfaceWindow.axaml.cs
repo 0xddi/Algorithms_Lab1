@@ -76,11 +76,18 @@ namespace Algorithms.GUI.Views
         {
             if (results == null || results.Count == 0) return;
 
-            _useHeatmap = true;
+            _seriesList.Clear();
             _nValues = results.Select(r => r.N).Distinct().OrderBy(x => x).ToArray();
             _mValues = results.Select(r => r.M).Distinct().OrderBy(x => x).ToArray();
+            _maxTime = results.Max(r => r.TimeMs);
 
             var grid = new double[_nValues.Length, _mValues.Length];
+
+            // Инициализируем пустоту как NaN, а не 0.0
+            for (int i = 0; i < _nValues.Length; i++)
+            for (int j = 0; j < _mValues.Length; j++)
+                grid[i, j] = double.NaN;
+
             foreach (var r in results)
             {
                 int i = Array.IndexOf(_nValues, r.N);
@@ -127,6 +134,12 @@ namespace Algorithms.GUI.Views
             foreach (var s in seriesList)
             {
                 var grid = new double[_nValues.Length, _mValues.Length];
+
+                // Инициализируем пустоту как NaN
+                for (int i = 0; i < _nValues.Length; i++)
+                for (int j = 0; j < _mValues.Length; j++)
+                    grid[i, j] = double.NaN;
+
                 foreach (var r in s.Results)
                 {
                     int i = Array.IndexOf(_nValues, r.N);
@@ -198,6 +211,7 @@ namespace Algorithms.GUI.Views
             double heightScale = _maxTime > 0 ? 150.0 / _maxTime : 1.0;
 
             double minX = double.MaxValue, maxX = double.MinValue, minY = double.MaxValue, maxY = double.MinValue;
+            bool hasData = false;
 
             foreach (var series in _seriesList)
             {
@@ -205,11 +219,17 @@ namespace Algorithms.GUI.Views
                 {
                     for (int j = 0; j < cols; j++)
                     {
-                        double dx = i - cx, dz = j - cz;
+                        if (double.IsNaN(series.Grid[i, j])) continue; // Игнорируем непосчитанные
+
+                        hasData = true;
+                        double dx = i - cx;
+                        double dz = j - cz;
                         double rx = dx * cosA - dz * sinA;
                         double rz = dx * sinA + dz * cosA;
+
                         double sx = (rx - rz) * scale * Math.Cos(Math.PI / 6);
-                        double sy = (rx + rz) * scale * Math.Sin(Math.PI / 6) - (series.Grid[i, j] - _pivotHeight) * heightScale;
+                        double sy = (rx + rz) * scale * Math.Sin(Math.PI / 6) -
+                                    (series.Grid[i, j] - _pivotHeight) * heightScale;
 
                         if (sx < minX) minX = sx;
                         if (sx > maxX) maxX = sx;
@@ -218,6 +238,8 @@ namespace Algorithms.GUI.Views
                     }
                 }
             }
+
+            if (!hasData) return 1.0;
 
             double bboxWidth = Math.Max(maxX - minX, 1);
             double bboxHeight = Math.Max(maxY - minY, 1);
@@ -286,7 +308,7 @@ namespace Algorithms.GUI.Views
 
             int rows = _nValues.Length;
             int cols = _mValues.Length;
-            if (rows < 2 || cols < 2) return;
+            if (rows == 0 || cols == 0) return; // Теперь график отрисуется, даже если успела посчитаться 1 точка
 
             double angle = _rotationAngle * Math.PI / 180.0;
             double cosA = Math.Cos(angle);
@@ -317,13 +339,14 @@ namespace Algorithms.GUI.Views
                 return (screenX, screenY);
             }
 
-            // Отрисовка единого основания (сетка Y = 0)
+            int rEnd = Math.Max(0, rows - 1);
+            int cEnd = Math.Max(0, cols - 1);
             var floorEdges = new (int i0, int j0, int i1, int j1)[]
             {
-                (0, 0, rows - 1, 0),
-                (0, 0, 0, cols - 1),
-                (rows - 1, 0, rows - 1, cols - 1),
-                (0, cols - 1, rows - 1, cols - 1)
+                (0, 0, rEnd, 0),
+                (0, 0, 0, cEnd),
+                (rEnd, 0, rEnd, cEnd),
+                (0, cEnd, rEnd, cEnd)
             };
             foreach (var (i0, j0, i1, j1) in floorEdges)
             {
@@ -339,10 +362,10 @@ namespace Algorithms.GUI.Views
             }
 
             AddAxisLabel(Project(0, 0, 0), $"n={_nValues[0]}, m={_mValues[0]}");
-            AddAxisLabel(Project(rows - 1, 0, 0), $"n={_nValues[^1]}");
-            AddAxisLabel(Project(0, cols - 1, 0), $"m={_mValues[^1]}");
+            AddAxisLabel(Project(rEnd, 0, 0), $"n={_nValues[^1]}");
+            AddAxisLabel(Project(0, cEnd, 0), $"m={_mValues[^1]}");
 
-            var quads = new List<(Polygon poly, double depth)>();
+            var elementsToDraw = new List<(Control Element, double Depth)>();
 
             foreach (var series in _seriesList)
             {
@@ -354,53 +377,88 @@ namespace Algorithms.GUI.Views
                 }
                 else
                 {
-                    // Полупрозрачная заливка поверхностей
                     fillColor = Color.FromArgb(130, series.Color.R, series.Color.G, series.Color.B);
                     strokeColor = Color.FromArgb(180, series.Color.R, series.Color.G, series.Color.B);
                 }
 
-                for (int i = 0; i < rows - 1; i++)
+                // 1. Отрисовка поверхностей (полигонов)
+                if (rows > 1 && cols > 1)
                 {
-                    for (int j = 0; j < cols - 1; j++)
+                    for (int i = 0; i < rows - 1; i++)
                     {
-                        double h00 = series.Grid[i, j];
-                        double h10 = series.Grid[i + 1, j];
-                        double h01 = series.Grid[i, j + 1];
-                        double h11 = series.Grid[i + 1, j + 1];
-
-                        var p00 = Project(i, j, h00);
-                        var p10 = Project(i + 1, j, h10);
-                        var p01 = Project(i, j + 1, h01);
-                        var p11 = Project(i + 1, j + 1, h11);
-
-                        double avgHeight = (h00 + h10 + h01 + h11) / 4.0;
-
-                        IBrush polyFill = _useHeatmap
-                            ? new SolidColorBrush(HeightToColor(_maxTime > 0 ? avgHeight / _maxTime : 0))
-                            : new SolidColorBrush(fillColor);
-
-                        var poly = new Polygon
+                        for (int j = 0; j < cols - 1; j++)
                         {
-                            Points = new Points { new(p00.sx, p00.sy), new(p10.sx, p10.sy), new(p11.sx, p11.sy), new(p01.sx, p01.sy) },
-                            Fill = polyFill,
-                            Stroke = new SolidColorBrush(strokeColor),
-                            StrokeThickness = _useHeatmap ? 0.5 : 0.8
+                            double h00 = series.Grid[i, j];
+                            double h10 = series.Grid[i + 1, j];
+                            double h01 = series.Grid[i, j + 1];
+                            double h11 = series.Grid[i + 1, j + 1];
+
+                            // Пропускаем квадрат, если хотя бы один из его 4 углов не был вычислен (отменен)
+                            if (double.IsNaN(h00) || double.IsNaN(h10) || double.IsNaN(h01) || double.IsNaN(h11))
+                                continue;
+
+                            var p00 = Project(i, j, h00);
+                            var p10 = Project(i + 1, j, h10);
+                            var p01 = Project(i, j + 1, h01);
+                            var p11 = Project(i + 1, j + 1, h11);
+
+                            double avgHeight = (h00 + h10 + h01 + h11) / 4.0;
+                            IBrush polyFill = _useHeatmap
+                                ? new SolidColorBrush(HeightToColor(_maxTime > 0 ? avgHeight / _maxTime : 0))
+                                : new SolidColorBrush(fillColor);
+
+                            var poly = new Polygon
+                            {
+                                Points = new Points
+                                {
+                                    new(p00.sx, p00.sy), new(p10.sx, p10.sy), new(p11.sx, p11.sy), new(p01.sx, p01.sy)
+                                },
+                                Fill = polyFill,
+                                Stroke = new SolidColorBrush(strokeColor),
+                                StrokeThickness = _useHeatmap ? 0.5 : 0.8
+                            };
+
+                            double dx = (i + 0.5) - cx;
+                            double dz = (j + 0.5) - cz;
+                            double depth = ((dx * cosA - dz * sinA) + (dx * sinA + dz * cosA)) * 10000.0 + avgHeight;
+                            elementsToDraw.Add((poly, depth));
+                        }
+                    }
+                }
+
+                // 2. Отрисовка точек-узлов (позволит увидеть данные, даже если нет полных полигонов)
+                for (int i = 0; i < rows; i++)
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        double h = series.Grid[i, j];
+                        if (double.IsNaN(h)) continue;
+
+                        var p = Project(i, j, h);
+
+                        double dx = i - cx;
+                        double dz = j - cz;
+                        double depth = ((dx * cosA - dz * sinA) + (dx * sinA + dz * cosA)) * 10000.0 + h + 1.0;
+
+                        var dotColor = _useHeatmap ? HeightToColor(_maxTime > 0 ? h / _maxTime : 0) : series.Color;
+                        var dot = new Ellipse
+                        {
+                            Width = 4, Height = 4,
+                            Fill = new SolidColorBrush(dotColor),
+                            IsHitTestVisible = false
                         };
+                        Canvas.SetLeft(dot, p.sx - 2);
+                        Canvas.SetTop(dot, p.sy - 2);
 
-                        double dx = (i + 0.5) - cx;
-                        double dz = (j + 0.5) - cz;
-                        double rx = dx * cosA - dz * sinA;
-                        double rz = dx * sinA + dz * cosA;
-                        double depth = (rx + rz) * 10000.0 + avgHeight;
-
-                        quads.Add((poly, depth));
+                        elementsToDraw.Add((dot, depth));
                     }
                 }
             }
 
-            foreach (var (poly, _) in quads.OrderBy(q => q.depth))
+            // Рендер отсортированный по глубине Z-index
+            foreach (var (element, _) in elementsToDraw.OrderBy(e => e.Depth))
             {
-                DrawCanvas.Children.Add(poly);
+                DrawCanvas.Children.Add(element);
             }
         }
 
@@ -425,6 +483,7 @@ namespace Algorithms.GUI.Views
                 double k = t / 0.5;
                 return Color.FromRgb(0, (byte)(k * 255), (byte)((1 - k) * 255));
             }
+
             double k2 = (t - 0.5) / 0.5;
             return Color.FromRgb((byte)(k2 * 255), (byte)((1 - k2) * 255), 0);
         }

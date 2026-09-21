@@ -406,9 +406,16 @@ public partial class MainWindow : Window
                         return new MatrixMultiplicationAlgorithm((a, b)).RunBench(1);
                     });
 
-                    matrixBench.Run(nValues, mValues, useCache: useCache, 
-                                    token: token, progress: progressReporter, progressState: progressState);
-                    matrixResults = matrixBench.Results;
+                    try
+                    {
+                        matrixBench.Run(nValues, mValues, useCache: useCache, 
+                            token: token, progress: progressReporter, progressState: progressState);
+                    }
+                    finally
+                    {
+                        // Забираем частично вычисленные результаты, даже если сработало прерывание (throw OperationCanceledException)
+                        matrixResults = matrixBench.Results;
+                    }
                 }
             }, token);
 
