@@ -9,35 +9,183 @@
         WindowStartupLocation="CenterScreen"
         WindowDecorations="Full"
         CanResize="True"
-        RequestedThemeVariant="Dark">
+        RequestedThemeVariant="Dark"
+        Background="#1E1E1E"
+        Foreground="#D4D4D4">
+
+    <!--
+        Палитра
+        Фон окна        #1E1E1E
+        Панели          #252526
+        Карточки        #2D2D30 (на панелях), #252526 (на фоне окна)
+        Границы         #3E3E42
+        Текст           #D4D4D4
+        Акцент          #3794FF
+        Теория          #FFB35C   (в code-behind)
+    -->
 
     <Window.Resources>
-        <Color x:Key="SystemAccentColor">#009688</Color>
+        <!-- Системный акцент: чекбоксы, радио, прогресс-бар -->
+        <Color x:Key="SystemAccentColor">#3794FF</Color>
+        <Color x:Key="SystemAccentColorLight1">#5AA9FF</Color>
+        <Color x:Key="SystemAccentColorLight2">#7FBBFF</Color>
+        <Color x:Key="SystemAccentColorLight3">#A5CEFF</Color>
+        <Color x:Key="SystemAccentColorDark1">#2B7CD6</Color>
+        <Color x:Key="SystemAccentColorDark2">#2166B3</Color>
+        <Color x:Key="SystemAccentColorDark3">#194F8C</Color>
+
+        <!-- Кнопки -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#333337"/>
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#45454A"/>
+        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#2A2A2C"/>
+        <SolidColorBrush x:Key="ButtonForeground" Color="#D4D4D4"/>
+        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#6B6B6B"/>
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#5A5A5F"/>
+        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#3794FF"/>
+        <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#3E3E42"/>
+
+        <!-- Текстовые поля -->
+        <SolidColorBrush x:Key="TextControlBackground" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#252526"/>
+        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="TextControlBorderBrush" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#5A5A5F"/>
+        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#3794FF"/>
+        <SolidColorBrush x:Key="TextControlForeground" Color="#D4D4D4"/>
+        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6B6B6B"/>
     </Window.Resources>
 
-    <Window.Background>
-        <SolidColorBrush Color="#121212" />
-    </Window.Background>
+    <Window.Styles>
+        <!-- Карточка -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <!-- Общие кнопки -->
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Главная кнопка -->
+        <Style Selector="Button.primary">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Style.Resources>
+                <SolidColorBrush x:Key="ButtonBackground" Color="#3794FF"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#5AA9FF"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#2B7CD6"/>
+                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#33363B"/>
+                <SolidColorBrush x:Key="ButtonForeground" Color="#1E1E1E"/>
+                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1E1E1E"/>
+                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1E1E1E"/>
+                <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#6B6B6B"/>
+                <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent"/>
+            </Style.Resources>
+        </Style>
+
+        <!-- Опасная кнопка (Отменить) -->
+        <Style Selector="Button.danger">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Style.Resources>
+                <SolidColorBrush x:Key="ButtonBackground" Color="#3A2323"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#4A2B2B"/>
+                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#5A3333"/>
+                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#2A2A2C"/>
+                <SolidColorBrush x:Key="ButtonForeground" Color="#F48771"/>
+                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFA898"/>
+                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFA898"/>
+                <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#6B6B6B"/>
+                <SolidColorBrush x:Key="ButtonBorderBrush" Color="#5A3333"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#8A4A4A"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#F48771"/>
+                <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#3E3E42"/>
+            </Style.Resources>
+        </Style>
+
+        <!-- Маленькие кнопки масштаба -->
+        <Style Selector="Button.tool">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="16"/>
+        </Style>
+
+        <!-- Текст -->
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#D4D4D4"/>
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#D4D4D4"/>
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="#9D9D9D"/>
+        </Style>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#9D9D9D"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Padding" Value="8,3"/>
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Padding" Value="6,0,0,0"/>
+        </Style>
+        <Style Selector="RadioButton">
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="Padding" Value="6,0,0,0"/>
+        </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+    </Window.Styles>
 
     <Grid ColumnDefinitions="380, *">
 
         <!-- ЛЕВАЯ ПАНЕЛЬ: НАСТРОЙКИ -->
-        <Border Grid.Column="0" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="0,0,1,0" Padding="15">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="20">
+        <Border Grid.Column="0" Background="#252526" BorderBrush="#3E3E42" BorderThickness="0,0,1,0" Padding="12">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
+                <StackPanel Spacing="6">
 
-                    <TextBlock Text="Настройки бенчмарка" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF" />
+                    <TextBlock Text="Настройки бенчмарка" Classes="title" />
 
                     <!-- 1. Настройка Range данных -->
-                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E"
-                            BorderThickness="1">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Входные данные для сортировки" FontWeight="SemiBold" Foreground="#E0E0E0" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Входные данные для сортировки" Classes="section" />
 
                             <RadioButton Name="RangeDataRadio" Content="По диапазону (Start, End, Step)"
                                          IsChecked="True" />
                             <StackPanel IsEnabled="{Binding #RangeDataRadio.IsChecked}" Orientation="Horizontal"
-                                        Spacing="5" Margin="20,0,0,10">
+                                        Spacing="6" Margin="20,0,0,4">
                                 <TextBox Name="StartValBox" PlaceholderText="0" Text="0" Width="90" />
                                 <TextBox Name="EndValBox" PlaceholderText="1000" Text="1000" Width="90" />
                                 <TextBox Name="StepValBox" PlaceholderText="10" Text="10" Width="90" />
@@ -52,10 +200,9 @@
                     </Border>
 
                     <!-- 2. Выбор алгоритмов -->
-                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E"
-                            BorderThickness="1">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Алгоритмы для запуска" FontWeight="SemiBold" Foreground="#E0E0E0" />
+                    <Border Classes="card">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Алгоритмы для запуска" Classes="section" />
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <Button Content="Выбрать все" Click="SelectAll_Click" Width="135"
                                         HorizontalContentAlignment="Center" />
@@ -72,7 +219,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:AlgorithmTaskItem">
                                         <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}"
-                                                  Margin="5,2,15,2" />
+                                                  Margin="4,0,10,0" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -80,22 +227,21 @@
                     </Border>
 
                     <!-- Матрицы (Часть II) -->
-                    <Border Background="#252526" CornerRadius="8" Padding="12" BorderBrush="#3E3E3E"
-                            BorderThickness="1">
-                        <StackPanel Spacing="10">
+                    <Border Classes="card">
+                        <StackPanel Spacing="6">
                             <CheckBox Name="RunMatrixCheckBox" Content="Умножение матриц (n×m)" IsChecked="True"
-                                      Foreground="#E0E0E0" FontWeight="SemiBold" />
+                                      Foreground="#D4D4D4" FontWeight="SemiBold" />
                             <StackPanel Orientation="Horizontal" Spacing="10" Margin="20,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="N max" FontSize="11" Foreground="#AAAAAA" />
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="N max" Classes="caption" />
                                     <TextBox Name="MatrixNMaxBox" Text="200" Width="80" />
                                 </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="M max" FontSize="11" Foreground="#AAAAAA" />
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="M max" Classes="caption" />
                                     <TextBox Name="MatrixMMaxBox" Text="200" Width="80" />
                                 </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Шаг" FontSize="11" Foreground="#AAAAAA" />
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Шаг" Classes="caption" />
                                     <TextBox Name="MatrixStepBox" Text="10" Width="80" />
                                 </StackPanel>
                             </StackPanel>
@@ -103,32 +249,33 @@
                     </Border>
 
                     <!-- 3. Управление запуском и отображением -->
-                    <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <StackPanel Spacing="8" Margin="0,2,0,0">
                         <!-- Кнопки Запуска и Отмены -->
                         <Grid ColumnDefinitions="*, 10, Auto">
                             <Button Name="RunButton" Grid.Column="0" Content="Запустить вычисления"
-                                    Click="RunButton_Click"
+                                    Click="RunButton_Click" Classes="primary"
                                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    Background="#009688" Foreground="White" FontSize="16" Height="45" />
+                                    FontSize="15" Height="42" />
 
                             <Button Name="CancelButton" Grid.Column="2" Content="Отменить" Click="CancelButton_Click"
+                                    Classes="danger"
                                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    Background="#D32F2F" Foreground="White" FontSize="16" Height="45" Width="120"
+                                    FontSize="15" Height="42" Width="120"
                                     IsEnabled="False" />
                         </Grid>
 
                         <!-- Панель прогресса (полоска + текст) -->
-                        <StackPanel Name="ProgressPanel" IsVisible="False" Spacing="5">
+                        <StackPanel Name="ProgressPanel" IsVisible="False" Spacing="6">
                             <ProgressBar Name="ProgressIndicator" Minimum="0" Maximum="100" Value="0" Height="6" />
                             <Grid ColumnDefinitions="Auto, *, Auto">
-                                <TextBlock Name="ProgressPercentText" Grid.Column="0" Text="0%" Foreground="#AAAAAA"
+                                <TextBlock Name="ProgressPercentText" Grid.Column="0" Text="0%" Classes="muted"
                                            FontSize="12" />
-                                <TextBlock Name="EtaText" Grid.Column="2" Text="Осталось: ~00:00" Foreground="#AAAAAA"
+                                <TextBlock Name="EtaText" Grid.Column="2" Text="Осталось: ~00:00" Classes="muted"
                                            FontSize="12" HorizontalAlignment="Right" />
                             </Grid>
                         </StackPanel>
 
-                        <TextBlock Name="StatusText" Text="Ожидание запуска..." Foreground="#AAAAAA"
+                        <TextBlock Name="StatusText" Text="Ожидание запуска..." Classes="muted"
                                    TextWrapping="Wrap" />
 
                         <CheckBox Name="ShowApproxCheckBox" Content="Показывать теоретическую аппроксимацию"
@@ -138,7 +285,7 @@
                                   Foreground="#CCCCCC" />
                         <Button Name="CompareHistoryButton" Content="Сравнить историю из БД"
                                 Click="CompareHistoryButton_Click"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="#2D2D30" />
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     </StackPanel>
 
                 </StackPanel>
@@ -147,37 +294,14 @@
 
         <!-- ПРАВАЯ ПАНЕЛЬ: ГРАФИКИ -->
         <Grid Grid.Column="1">
-            <ScrollViewer Margin="10">
+            <ScrollViewer Margin="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
                 <StackPanel Spacing="12">
 
                     <!-- 1. Матрицы (3D поверхности) -->
-                    <StackPanel Name="MatrixPanelHost" Orientation="Vertical" Spacing="8" />
+                    <StackPanel Name="MatrixPanelHost" Orientation="Vertical" Spacing="12" />
 
-                    <!-- 2. Панель управления масштабированием 2D графиков -->
-                    <Border Name="ZoomControlPanel" IsVisible="False" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="6"
-                            Padding="10">
-                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Управление масштабом 2D графиков:" FontWeight="SemiBold"
-                                       VerticalAlignment="Center" Margin="0,0,15,0" Foreground="#FFFFFF" />
-
-                            <TextBlock Text="Ось X:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#CCCCCC" />
-                            <Button Content="+" Click="ZoomInX_Click" Margin="0,0,5,0" Width="30"
-                                    HorizontalContentAlignment="Center" />
-                            <Button Content="-" Click="ZoomOutX_Click" Margin="0,0,15,0" Width="30"
-                                    HorizontalContentAlignment="Center" />
-
-                            <TextBlock Text="Ось Y:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#CCCCCC" />
-                            <Button Content="+" Click="ZoomInY_Click" Margin="0,0,5,0" Width="30"
-                                    HorizontalContentAlignment="Center" />
-                            <Button Content="-" Click="ZoomOutY_Click" Margin="0,0,15,0" Width="30"
-                                    HorizontalContentAlignment="Center" />
-
-                            <Button Content="Сбросить масштаб" Click="ResetZoom_Click" />
-                        </WrapPanel>
-                    </Border>
-
-                    <!-- 3. Область 2D графиков -->
-                    <WrapPanel Name="PlotsPanel" Orientation="Horizontal" HorizontalAlignment="Left" />
+                    <!-- 2. Область 2D графиков -->
+                    <StackPanel Name="PlotsPanel" Orientation="Vertical" Spacing="12" />
 
                 </StackPanel>
             </ScrollViewer>
