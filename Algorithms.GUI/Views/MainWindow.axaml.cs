@@ -155,7 +155,9 @@ public partial class MainWindow : Window
     private void RenderMatrixPanel(List<MatrixBenchmarkResult> results, string label = "Умножение матриц (n×m)")
     {
         if (results.Count == 0) return;
-
+        
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+        
         var border = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -186,7 +188,36 @@ public partial class MainWindow : Window
 
         border.Child = stack;
         MatrixPanelHost.Children.Add(border);
-        control.SetResults(results);
+        // Если галочка установлена — генерируем теоретическую поверхность
+        if (showApprox)
+        {
+            var (c, mse) = FitMatrixApproximation(results);
+            var approxResults = results
+                .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
+                .ToList();
+
+            var seriesList = new List<MatrixSeries>
+            {
+                new MatrixSeries
+                {
+                    Name = "Эксперимент",
+                    Results = results,
+                    Color = Color.Parse("#009688")
+                },
+                new MatrixSeries
+                {
+                    Name = $"Теория (MSE: {mse:E2})",
+                    Results = approxResults,
+                    Color = Color.Parse("#FF9800")
+                }
+            };
+
+            control.SetMultipleResults(seriesList);
+        }
+        else
+        {
+            control.SetResults(results);
+        }
     }
     
     private void RenderMatrixHeatmap(List<MatrixBenchmarkResult> results, string titleSuffix = "")
@@ -535,7 +566,34 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
                 }
             }
 
-            if (seriesList.Count > 1)
+            if (showApprox && seriesList.Any())
+            {
+                var displaySeriesList = new List<MatrixSeries>();
+                for (int i = 0; i < seriesList.Count; i++)
+                {
+                    var s = seriesList[i];
+                    displaySeriesList.Add(s);
+
+                    var (c, mse) = FitMatrixApproximation(s.Results);
+                    var approxResults = s.Results
+                        .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
+                        .ToList();
+
+                    string approxName = seriesList.Count > 1 
+                        ? $"Теория №{i + 1} (MSE: {mse:E1})" 
+                        : $"Теория (MSE: {mse:E1})";
+
+                    displaySeriesList.Add(new MatrixSeries
+                    {
+                        Name = approxName,
+                        Results = approxResults,
+                        Color = Color.Parse("#FF9800")
+                    });
+                }
+
+                RenderMatrixPanelForComparison(displaySeriesList, $"{algoName} — Сравнение сессий");
+            }
+            else if (seriesList.Count > 1)
             {
                 RenderMatrixPanelForComparison(seriesList, $"{algoName} — Сравнение сессий");
             }
