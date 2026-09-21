@@ -5,6 +5,14 @@ using Algorithms.Core.Database;
 
 namespace Algorithms.Core;
 
+
+public class BenchmarkProgressState
+{
+    public int CurrentStep { get; set; }
+    public int TotalSteps { get; set; }
+    public string CurrentTaskName { get; set; } = string.Empty;
+}
+
 public class Benchmarker
 {
     private readonly double[] _masterData;
@@ -18,7 +26,11 @@ public class Benchmarker
     public void AddTask(BenchmarkTask task) => Tasks.Add(task);
 
     // Добавлен флаг useCache
-    public void RunFiltered(IEnumerable<BenchmarkTask> tasksToRun, bool useCache = true, int benchCycles = 5)
+    // Измененная сигнатура с поддержкой отмены и прогресса
+    public void RunFiltered(IEnumerable<BenchmarkTask> tasksToRun, bool useCache = true, int benchCycles = 5,
+                            CancellationToken token = default, 
+                            IProgress<BenchmarkProgressState>? progress = null, 
+                            BenchmarkProgressState? progressState = null)
     {
         using var db = new AppDbContext();
         var experimentDate = DateTime.Now;
@@ -30,49 +42,63 @@ public class Benchmarker
             GC.WaitForPendingFinalizers();
             GC.Collect();
 
-            // Группируем по N и берем последнее измерение по дате, чтобы избежать дублирования ключей
             var cachedData = useCache 
                 ? db.Results
                     .Where(r => r.AlgorithmName == task.Name)
                     .GroupBy(r => r.N)
-                    .ToDictionary(
-                        g => g.Key, 
-                        g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs
-                    )
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs)
                 : new Dictionary<int, double>();
 
-            for (int i = 0; i < _masterData.Length; i++)
+            try
             {
-                int currentN = i + 1;
-
-                // 1. Механизм кэширования
-                if (useCache && cachedData.TryGetValue(currentN, out double cachedTime))
+                for (int i = 0; i < _masterData.Length; i++)
                 {
-                    double cachedTicks = cachedTime * TimeSpan.TicksPerMillisecond;
-                    task.Results.Add((currentN, cachedTime, cachedTicks));
-                    continue;
+                    // Проверка на то, была ли запрошена отмена
+                    token.ThrowIfCancellationRequested();
+
+                    int currentN = i + 1;
+
+                    if (useCache && cachedData.TryGetValue(currentN, out double cachedTime))
+                    {
+                        double cachedTicks = cachedTime * TimeSpan.TicksPerMillisecond;
+                        task.Results.Add((currentN, cachedTime, cachedTicks));
+                    }
+                    else
+                    {
+                        var currentDataSlice = _masterData[0..currentN];
+                        double avgTimeMs = task.RunMeasurement(currentDataSlice); 
+                        double avgTicks = avgTimeMs * TimeSpan.TicksPerMillisecond;
+
+                        task.Results.Add((currentN, avgTimeMs, avgTicks));
+
+                        db.Results.Add(new ExperimentResult
+                        {
+                            AlgorithmName = task.Name,
+                            N = currentN,
+                            RunNumber = 0,
+                            ElapsedTimeMs = avgTimeMs,
+                            ExperimentDate = experimentDate,
+                            StepCount = null 
+                        });
+                    }
+
+                    // Обновляем UI
+                    if (progressState != null && progress != null)
+                    {
+                        progressState.CurrentStep++;
+                        progressState.CurrentTaskName = task.Name;
+                        progress.Report(progressState);
+                    }
                 }
-
-                // 2. Если в кэше нет — запускаем замер
-                var currentDataSlice = _masterData[0..currentN];
-                double avgTimeMs = task.RunMeasurement(currentDataSlice); 
-                double avgTicks = avgTimeMs * TimeSpan.TicksPerMillisecond;
-
-                task.Results.Add((currentN, avgTimeMs, avgTicks));
-
-                // 3. Сохраняем в БД
-                db.Results.Add(new ExperimentResult
-                {
-                    AlgorithmName = task.Name,
-                    N = currentN,
-                    RunNumber = 0,
-                    ElapsedTimeMs = avgTimeMs,
-                    ExperimentDate = experimentDate,
-                    StepCount = null 
-                });
+                
+                db.SaveChanges(); // Сохраняем завершенный алгоритм
             }
-        
-            db.SaveChanges();
+            catch (OperationCanceledException)
+            {
+                // Аккуратная работа с БД: если нажали отмену, сохраняем всё, что успели посчитать!
+                db.SaveChanges(); 
+                throw; // Пробрасываем ошибку дальше для остановки
+            }
         }
     }
 }
