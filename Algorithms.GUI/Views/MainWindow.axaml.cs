@@ -53,6 +53,7 @@ public partial class MainWindow : Window
         RegisterTaskInfo("Product Algorithm", slice => new ProductAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Naive Polynomial", slice => new NaivePolynomialAlgorithm(slice).RunBench(5));
         RegisterTaskInfo("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Selection Sort", slice => new SelectionSortAlgorithm(slice).RunBench(5)); // Добавлено
 
         const double baseX = 1.5;
         RegisterTaskInfo("Simple Pow (x^n)", slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
@@ -61,6 +62,7 @@ public partial class MainWindow : Window
         RegisterTaskInfo("Fast Pow", slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
         RegisterTaskInfo("Classic Fast Pow",
             slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Aho-Corasick", slice => new AhoCorasickAlgorithm(slice).RunBench(5)); // Добавлено
 
         AlgorithmsList.ItemsSource = AlgorithmItems;
     }
@@ -73,10 +75,10 @@ public partial class MainWindow : Window
         if (n <= 0) n = 1;
         return algoName switch
         {
-            "Bubble Sort" or "Naive Polynomial" => n * n, // O(n^2)
+            "Bubble Sort" or "Naive Polynomial" or "Selection Sort" => n * n, // O(n^2)
             "Quick Sort" or "Tim Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
             "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial"
-                or "Simple Pow (x^n)" or "Recursive Pow" => n, // O(n)
+                or "Simple Pow (x^n)" or "Recursive Pow" or "Aho-Corasick" => n, // O(n)
             "Fast Pow" or "Classic Fast Pow" => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
             "Constant Function" => 1.0, // O(1)
             _ => n
@@ -657,4 +659,5 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
     MatrixPanelHost.Children.Add(border);
     control.SetMultipleResults(seriesList);
 }
+    
 }
