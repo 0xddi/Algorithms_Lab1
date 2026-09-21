@@ -172,124 +172,150 @@
 
         <!-- ЛЕВАЯ ПАНЕЛЬ: НАСТРОЙКИ -->
         <Border Grid.Column="0" Background="#252526" BorderBrush="#3E3E42" BorderThickness="0,0,1,0" Padding="12">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
-                <StackPanel Spacing="6">
+            <Grid RowDefinitions="*, Auto">
+                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="6" MaxHeight="48" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="6" MaxHeight="48" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="6" MaxHeight="48" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="8" MaxHeight="48" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                    <TextBlock Text="Настройки бенчмарка" Classes="title" />
+                        <TextBlock Grid.Row="0" Text="Настройки бенчмарка" Classes="title" />
 
-                    <!-- 1. Настройка Range данных -->
-                    <Border Classes="card">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Входные данные для сортировки" Classes="section" />
+                        <!-- 1. Настройка Range данных -->
+                        <Border Grid.Row="2" Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Входные данные для сортировки" Classes="section" />
 
-                            <RadioButton Name="RangeDataRadio" Content="По диапазону (Start, End, Step)"
-                                         IsChecked="True" />
-                            <StackPanel IsEnabled="{Binding #RangeDataRadio.IsChecked}" Orientation="Horizontal"
-                                        Spacing="6" Margin="20,0,0,4">
-                                <TextBox Name="StartValBox" PlaceholderText="0" Text="0" Width="90" />
-                                <TextBox Name="EndValBox" PlaceholderText="1000" Text="1000" Width="90" />
-                                <TextBox Name="StepValBox" PlaceholderText="10" Text="10" Width="90" />
-                            </StackPanel>
-
-                            <RadioButton Name="RandomDataRadio" Content="Случайные значения" />
-                            <StackPanel IsEnabled="{Binding #RandomDataRadio.IsChecked}" Margin="20,0,0,0">
-                                <TextBox Name="CountValBox" PlaceholderText="2000" Text="2000" Width="280"
-                                         HorizontalAlignment="Left" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 2. Выбор алгоритмов -->
-                    <Border Classes="card">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Алгоритмы для запуска" Classes="section" />
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button Content="Выбрать все" Click="SelectAll_Click" Width="135"
-                                        HorizontalContentAlignment="Center" />
-                                <Button Content="Снять все" Click="DeselectAll_Click" Width="135"
-                                        HorizontalContentAlignment="Center" />
-                            </StackPanel>
-
-                            <ItemsControl Name="AlgorithmsList" Margin="0,5,0,0">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="models:AlgorithmTaskItem">
-                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}"
-                                                  Margin="4,0,10,0" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Матрицы (Часть II) -->
-                    <Border Classes="card">
-                        <StackPanel Spacing="6">
-                            <CheckBox Name="RunMatrixCheckBox" Content="Умножение матриц (n×m)" IsChecked="True"
-                                      Foreground="#D4D4D4" FontWeight="SemiBold" />
-                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="20,0,0,0">
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="N max" Classes="caption" />
-                                    <TextBox Name="MatrixNMaxBox" Text="200" Width="80" />
+                                <RadioButton Name="RangeDataRadio" Content="По диапазону (Start, End, Step)"
+                                             IsChecked="True" />
+                                <StackPanel IsEnabled="{Binding #RangeDataRadio.IsChecked}" Orientation="Horizontal"
+                                            Spacing="6" Margin="20,0,0,4">
+                                    <TextBox Name="StartValBox" PlaceholderText="0" Text="0" Width="90" />
+                                    <TextBox Name="EndValBox" PlaceholderText="1000" Text="1000" Width="90" />
+                                    <TextBox Name="StepValBox" PlaceholderText="10" Text="10" Width="90" />
                                 </StackPanel>
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="M max" Classes="caption" />
-                                    <TextBox Name="MatrixMMaxBox" Text="200" Width="80" />
-                                </StackPanel>
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="Шаг" Classes="caption" />
-                                    <TextBox Name="MatrixStepBox" Text="10" Width="80" />
+
+                                <RadioButton Name="RandomDataRadio" Content="Случайные значения" />
+                                <StackPanel IsEnabled="{Binding #RandomDataRadio.IsChecked}" Margin="20,0,0,0">
+                                    <TextBox Name="CountValBox" PlaceholderText="2000" Text="2000" Width="280"
+                                             HorizontalAlignment="Left" />
                                 </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
+                        </Border>
 
-                    <!-- 3. Управление запуском и отображением -->
-                    <StackPanel Spacing="8" Margin="0,2,0,0">
-                        <!-- Кнопки Запуска и Отмены -->
-                        <Grid ColumnDefinitions="*, 10, Auto">
-                            <Button Name="RunButton" Grid.Column="0" Content="Запустить вычисления"
-                                    Click="RunButton_Click" Classes="primary"
-                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    FontSize="15" Height="42" />
+                        <!-- 2. Выбор алгоритмов -->
+                        <Border Grid.Row="4" Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Алгоритмы для запуска" Classes="section" />
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Выбрать все" Click="SelectAll_Click" Width="135"
+                                            HorizontalContentAlignment="Center" />
+                                    <Button Content="Снять все" Click="DeselectAll_Click" Width="135"
+                                            HorizontalContentAlignment="Center" />
+                                </StackPanel>
 
-                            <Button Name="CancelButton" Grid.Column="2" Content="Отменить" Click="CancelButton_Click"
-                                    Classes="danger"
-                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                    FontSize="15" Height="42" Width="120"
-                                    IsEnabled="False" />
-                        </Grid>
+                                <ItemsControl Name="AlgorithmsList" Margin="0,5,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:AlgorithmTaskItem">
+                                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}"
+                                                      Margin="4,0,10,0" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
 
-                        <!-- Панель прогресса (полоска + текст) -->
-                        <StackPanel Name="ProgressPanel" IsVisible="False" Spacing="6">
-                            <ProgressBar Name="ProgressIndicator" Minimum="0" Maximum="100" Value="0" Height="6" />
-                            <Grid ColumnDefinitions="Auto, *, Auto">
-                                <TextBlock Name="ProgressPercentText" Grid.Column="0" Text="0%" Classes="muted"
-                                           FontSize="12" />
-                                <TextBlock Name="EtaText" Grid.Column="2" Text="Осталось: ~00:00" Classes="muted"
-                                           FontSize="12" HorizontalAlignment="Right" />
+                        <!-- Матрицы (Часть II) -->
+                        <Border Grid.Row="6" Classes="card">
+                            <StackPanel Spacing="6">
+                                <CheckBox Name="RunMatrixCheckBox" Content="Умножение матриц (n×m)" IsChecked="True"
+                                          Foreground="#D4D4D4" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="20,0,0,0">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="N max" Classes="caption" />
+                                        <TextBox Name="MatrixNMaxBox" Text="200" Width="80" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="M max" Classes="caption" />
+                                        <TextBox Name="MatrixMMaxBox" Text="200" Width="80" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="Шаг" Classes="caption" />
+                                        <TextBox Name="MatrixStepBox" Text="10" Width="80" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 3. Управление запуском и отображением -->
+                        <StackPanel Grid.Row="8" Spacing="8">
+                            <!-- Кнопки Запуска и Отмены -->
+                            <Grid ColumnDefinitions="*, 10, Auto">
+                                <Button Name="RunButton" Grid.Column="0" Content="Запустить вычисления"
+                                        Click="RunButton_Click" Classes="primary"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        FontSize="15" Height="42" />
+
+                                <Button Name="CancelButton" Grid.Column="2" Content="Отменить" Click="CancelButton_Click"
+                                        Classes="danger"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        FontSize="15" Height="42" Width="120"
+                                        IsEnabled="False" />
                             </Grid>
+
+                            <!-- Панель прогресса (полоска + текст) -->
+                            <StackPanel Name="ProgressPanel" IsVisible="False" Spacing="6">
+                                <ProgressBar Name="ProgressIndicator" Minimum="0" Maximum="100" Value="0" Height="6" />
+                                <Grid ColumnDefinitions="Auto, *, Auto">
+                                    <TextBlock Name="ProgressPercentText" Grid.Column="0" Text="0%" Classes="muted"
+                                               FontSize="12" />
+                                    <TextBlock Name="EtaText" Grid.Column="2" Text="Осталось: ~00:00" Classes="muted"
+                                               FontSize="12" HorizontalAlignment="Right" />
+                                </Grid>
+                            </StackPanel>
+
+                            <TextBlock Name="StatusText" Text="Ожидание запуска..." Classes="muted"
+                                       TextWrapping="Wrap" />
+
+                            <CheckBox Name="ShowApproxCheckBox" Content="Показывать теоретическую аппроксимацию"
+                                      IsChecked="True" Foreground="#CCCCCC" Click="ShowApprox_Click" />
+
+                            <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True"
+                                      Foreground="#CCCCCC" />
+                            <Button Name="CompareHistoryButton" Content="Сравнить историю из БД"
+                                    Click="CompareHistoryButton_Click"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                         </StackPanel>
 
-                        <TextBlock Name="StatusText" Text="Ожидание запуска..." Classes="muted"
-                                   TextWrapping="Wrap" />
+                    </Grid>
+                </ScrollViewer>
 
-                        <CheckBox Name="ShowApproxCheckBox" Content="Показывать теоретическую аппроксимацию"
-                                  IsChecked="True" Foreground="#CCCCCC" Click="ShowApprox_Click" />
-
-                        <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True"
-                                  Foreground="#CCCCCC" />
-                        <Button Name="CompareHistoryButton" Content="Сравнить историю из БД"
-                                Click="CompareHistoryButton_Click"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                    </StackPanel>
-
-                </StackPanel>
-            </ScrollViewer>
+                <!-- ССЫЛКА НА РЕПОЗИТОРИЙ (левый нижний угол) -->
+                <Border Grid.Row="1" BorderBrush="#3E3E42" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,10,0,0">
+                    <Button Name="GitHubLinkButton" Click="GitHubLink_Click" HorizontalAlignment="Left"
+                            ToolTip.Tip="https://github.com/0xddi/Algorithms_Lab1">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Path Width="16" Height="16" Stretch="Uniform" Fill="#3794FF"
+                                  Data="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                            <TextBlock Text="0xddi/Algorithms_Lab1" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Border>
+            </Grid>
         </Border>
 
         <!-- ПРАВАЯ ПАНЕЛЬ: ГРАФИКИ -->
