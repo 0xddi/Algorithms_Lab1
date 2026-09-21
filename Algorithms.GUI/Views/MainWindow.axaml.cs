@@ -338,6 +338,7 @@ public partial class MainWindow : Window
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
+        ZoomControlPanel.IsVisible = false;
 
         _benchmarker = new Benchmarker(inputData);
         foreach (var task in selectedTasks)
@@ -438,6 +439,8 @@ public partial class MainWindow : Window
             {
                 RenderMatrixPanel(_lastMatrixResults);
             }
+            
+            ZoomControlPanel.IsVisible = _activePlots.Any();
 
             _historyWindow?.LoadHistoryFromDb();
 
@@ -557,6 +560,8 @@ public partial class MainWindow : Window
             PlotsPanel.Children.Add(border);
             _activePlots.Add(plotControl);
         }
+        
+        ZoomControlPanel.IsVisible = _activePlots.Any();
     }
 
 
@@ -688,7 +693,11 @@ public partial class MainWindow : Window
         MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
 
-        if (sessionsToCompare == null || !sessionsToCompare.Any()) return;
+        if (sessionsToCompare == null || !sessionsToCompare.Any())
+        {
+            ZoomControlPanel.IsVisible = false;
+            return;
+        }
 
         bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
         var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
@@ -871,6 +880,7 @@ public partial class MainWindow : Window
         }
 
         StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
+        ZoomControlPanel.IsVisible = _activePlots.Any();
     }
 
     private void RenderMatrixPanelForComparison(List<MatrixSeries> seriesList,
