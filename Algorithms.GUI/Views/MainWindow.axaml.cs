@@ -155,7 +155,9 @@ public partial class MainWindow : Window
     private void RenderMatrixPanel(List<MatrixBenchmarkResult> results, string label = "Умножение матриц (n×m)")
     {
         if (results.Count == 0) return;
-
+        
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+        
         var border = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -186,7 +188,36 @@ public partial class MainWindow : Window
 
         border.Child = stack;
         MatrixPanelHost.Children.Add(border);
-        control.SetResults(results);
+        // Если галочка установлена — генерируем теоретическую поверхность
+        if (showApprox)
+        {
+            var (c, mse) = FitMatrixApproximation(results);
+            var approxResults = results
+                .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
+                .ToList();
+
+            var seriesList = new List<MatrixSeries>
+            {
+                new MatrixSeries
+                {
+                    Name = "Эксперимент",
+                    Results = results,
+                    Color = Color.Parse("#009688")
+                },
+                new MatrixSeries
+                {
+                    Name = $"Теория (MSE: {mse:E2})",
+                    Results = approxResults,
+                    Color = Color.Parse("#40FF9800") // Первые символы "40" задают высокую прозрачность
+                }
+            };
+
+            control.SetMultipleResults(seriesList);
+        }
+        else
+        {
+            control.SetResults(results);
+        }
     }
     
     private void RenderMatrixHeatmap(List<MatrixBenchmarkResult> results, string titleSuffix = "")
@@ -408,7 +439,18 @@ public partial class MainWindow : Window
                     plotControl.Plot.ShowLegend();
                     plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.UpperLeft;
                 }
-
+                
+                var seriesData = new List<(double[], double[], string)>
+                {
+                    (xs, ys, "Эксперимент")
+                };
+                if (showApprox)
+                {
+                    var (_, _, yApprox) = FitApproximation(xs, ys, task.Name);
+                    seriesData.Add((xs, yApprox, "Теория"));
+                }
+                AttachHoverTooltip(plotControl, seriesData);
+                
                 plotControl.Plot.Axes.AutoScale();
             }
 
@@ -535,7 +577,37 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
                 }
             }
 
-            if (seriesList.Count > 1)
+            if (showApprox && seriesList.Any())
+            {
+                var displaySeriesList = new List<MatrixSeries>();
+                for (int i = 0; i < seriesList.Count; i++)
+                {
+                    var s = seriesList[i];
+                    displaySeriesList.Add(s);
+
+                    var (c, mse) = FitMatrixApproximation(s.Results);
+                    var approxResults = s.Results
+                        .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
+                        .ToList();
+
+                    string approxName = seriesList.Count > 1 
+                        ? $"Теория №{i + 1} (MSE: {mse:E1})" 
+                        : $"Теория (MSE: {mse:E1})";
+
+                    displaySeriesList.Add(new MatrixSeries
+                    {
+                        Name = approxName,
+                        Results = approxResults,
+                        // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
+                        Color = seriesList.Count > 1 
+                            ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B) 
+                            : Color.Parse("#FF9800")
+                    });
+                }
+
+                RenderMatrixPanelForComparison(displaySeriesList, $"{algoName} — Сравнение сессий");
+            }
+            else if (seriesList.Count > 1)
             {
                 RenderMatrixPanelForComparison(seriesList, $"{algoName} — Сравнение сессий");
             }
@@ -567,6 +639,8 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
 
         var sessionsWithAlgo = sessionsToCompare.Where(s => s.Results.Any(r => r.AlgorithmName == algoName)).ToList();
         bool isShared = sessionsWithAlgo.Count > 1;
+        
+        var seriesData = new List<(double[], double[], string)>();
 
         for (int i = 0; i < sessionsToCompare.Count; i++)
         {
@@ -593,19 +667,27 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
             {
                 scatter.Color = ScottPlot.Color.FromHex("#009688");
             }
-
+            
+            seriesData.Add((xs, ys, isShared ? $"№ {i + 1}" : "Эксперимент"));
+            
             if (showApprox && xs.Length > 0)
             {
                 var (c, mse, yApprox) = FitApproximation(xs, ys, algoName);
                 var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                 approxScatter.LineWidth = 1.5f;
                 approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                approxScatter.Color = isShared 
+                    ? ScottPlot.Color.FromHex(colors[i % colors.Length]) 
+                    : ScottPlot.Color.FromHex("#FF9800");
                 approxScatter.MarkerSize = 0;
                 approxScatter.LegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
+                
+                seriesData.Add((xs, yApprox, isShared ? $"Теория №{i + 1}" : "Теория"));
             }
         }
-
+        
+        AttachHoverTooltip(plotControl, seriesData);
+        
         plotControl.Plot.ShowLegend();
         plotControl.Plot.Legend.Alignment = ScottPlot.Alignment.LowerRight;
 
@@ -658,6 +740,72 @@ public void RenderComparisonCharts(List<HistorySession> sessionsToCompare)
     border.Child = stack;
     MatrixPanelHost.Children.Add(border);
     control.SetMultipleResults(seriesList);
+}
+    private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries)
+{
+    ToolTip.SetShowDelay(plotControl, 0);
+
+    plotControl.PointerMoved += (sender, e) =>
+    {
+        // 1. Получаем координаты мыши и переводим в систему координат данных графика
+        var position = e.GetPosition(plotControl);
+        var mousePixel = new ScottPlot.Pixel((float)position.X, (float)position.Y);
+        var mouseCoords = plotControl.Plot.GetCoordinates(mousePixel);
+
+        // 2. Получаем текущие видимые границы осей для нормализации масштаба
+        var limits = plotControl.Plot.Axes.GetLimits();
+        double xRange = limits.Right - limits.Left;
+        double yRange = limits.Top - limits.Bottom;
+
+        if (xRange <= 0 || yRange <= 0) return;
+
+        double minDistance = double.MaxValue;
+        double closestX = 0;
+        double closestY = 0;
+        string closestName = "";
+        bool found = false;
+
+        // 3. Ищем ближайшую точку без тяжелых пиксельных конвертаций
+        foreach (var series in dataSeries)
+        {
+            for (int i = 0; i < series.xs.Length; i++)
+            {
+                // Нормализуем разницу от 0 до 1 относительно текущего зума графика
+                double dx = (series.xs[i] - mouseCoords.X) / xRange;
+                double dy = (series.ys[i] - mouseCoords.Y) / yRange;
+                
+                // Квадрат расстояния в нормализованных координатах
+                double dist = dx * dx + dy * dy;
+
+                // Порог прилипания ~0.001 (соответствует радиусу около 3% от размера окна)
+                if (dist < 0.001 && dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestX = series.xs[i];
+                    closestY = series.ys[i];
+                    closestName = series.name;
+                    found = true;
+                }
+            }
+        }
+
+        // 4. Управляем нативной всплывающей подсказкой Avalonia
+        if (found)
+        {
+            string text = string.IsNullOrEmpty(closestName)
+                ? $"N: {closestX}\nВремя: {closestY:F3} мс"
+                : $"{closestName}\nN: {closestX}\nВремя: {closestY:F3} мс";
+
+            ToolTip.SetTip(plotControl, text);
+            ToolTip.SetIsOpen(plotControl, true);
+        }
+        else
+        {
+            ToolTip.SetIsOpen(plotControl, false);
+        }
+    };
+
+    plotControl.PointerExited += (sender, e) => ToolTip.SetIsOpen(plotControl, false);
 }
     
 }
