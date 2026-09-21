@@ -33,14 +33,25 @@
             </StackPanel>
 
             <!-- Легенда Серий (для сравнения из истории) -->
+            <!-- Легенда Серий (для сравнения из истории) -->
             <StackPanel Name="SeriesLegendPanel" Grid.Column="1" IsVisible="False" Margin="6,4" Spacing="4" VerticalAlignment="Top">
                 <TextBlock Text="Сессии" Foreground="#CCCCCC" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                 <ItemsControl Name="SeriesLegendItems">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:CompileBindings="False">
                             <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,2">
-                                <Border Width="12" Height="12" CornerRadius="2" Background="{Binding Brush}"/>
-                                <TextBlock Text="{Binding Name}" Foreground="#CCCCCC" FontSize="10" VerticalAlignment="Center"/>
+                    
+                                <!-- Кнопка-глазик -->
+                                <ToggleButton IsChecked="{Binding IsVisible}"
+                                              Content="👁"
+                                              Padding="4,2"
+                                              Background="Transparent"
+                                              Foreground="#CCCCCC"
+                                              FontSize="12"
+                                              Cursor="Hand"
+                                              Click="LegendEyeButton_Click"/>
+                                <Border Width="12" Height="12" CornerRadius="2" Background="{Binding Brush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name}" Foreground="#CCCCCC" FontSize="10" VerticalAlignment="Center" MaxWidth="100" TextWrapping="Wrap"/>
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
