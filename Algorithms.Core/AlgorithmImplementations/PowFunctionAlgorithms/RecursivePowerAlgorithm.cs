@@ -10,6 +10,8 @@ public sealed class RecursivePowerAlgorithm : Algorithm<(double x, int n)>
     public override TimeComplexity Complexity => TimeComplexity.Logarithmic;
 
     public RecursivePowerAlgorithm((double x, int n) data) : base(data) { }
+    
+    public long Steps { get; protected set; } // счётчик шагов
 
     protected override void ExecuteCore((double x, int n) input)
     {
@@ -18,6 +20,7 @@ public sealed class RecursivePowerAlgorithm : Algorithm<(double x, int n)>
 
     private double RecPow(double x, int n)
     {
+        Steps++;
         if (n == 0)
         {
             return 1;

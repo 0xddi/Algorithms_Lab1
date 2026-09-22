@@ -46,7 +46,11 @@ public class Benchmarker
                 ? db.Results
                     .Where(r => r.AlgorithmName == task.Name)
                     .GroupBy(r => r.N)
-                    .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs)
+                    .ToDictionary(g => g.Key, g => 
+                    {
+                        var r = g.OrderByDescending(x => x.ExperimentDate).First();
+                        return task.IsStepMeasurement ? (double)(r.StepCount ?? 0) : r.ElapsedTimeMs;
+                    })
                 : new Dictionary<int, double>();
 
             try
@@ -76,7 +80,7 @@ public class Benchmarker
                             AlgorithmName = task.Name,
                             N = currentN,
                             RunNumber = 0,
-                            ElapsedTimeMs = avgTimeMs,
+                            ElapsedTimeMs = task.IsStepMeasurement ? 0 : avgTimeMs,
                             ExperimentDate = experimentDate,
                             StepCount = null 
                         });

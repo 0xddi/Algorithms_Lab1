@@ -44,9 +44,9 @@ public partial class MainWindow : Window
 
     private void InitializeTasksList()
     {
-        void RegisterTaskInfo(string name, Func<double[], double> measurement)
+        void RegisterTaskInfo(string name, Func<double[], double> measurement, bool isStep = false)
         {
-            var task = new BenchmarkTask(name, measurement);
+            var task = new BenchmarkTask(name, measurement) { IsStepMeasurement = isStep };
             AlgorithmItems.Add(new AlgorithmTaskItem { Name = name, IsSelected = true, Task = task });
         }
 
@@ -61,12 +61,32 @@ public partial class MainWindow : Window
         RegisterTaskInfo("Selection Sort", slice => new SelectionSortAlgorithm(slice).RunBench(5)); // Добавлено
 
         const double baseX = 1.5;
-        RegisterTaskInfo("Simple Pow (x^n)", slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
-        RegisterTaskInfo("Recursive Pow",
-            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
-        RegisterTaskInfo("Fast Pow", slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
-        RegisterTaskInfo("Classic Fast Pow",
-            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Simple Pow (x^n)", slice => {
+            var algo = new SimplePowAlgorithm((x: baseX, n: slice.Length));
+            algo.Execute(); // Запустите алгоритм 1 раз (замените на ваш метод, если он называется иначе)
+            return algo.Steps;
+        }, isStep: true);
+
+        RegisterTaskInfo("Recursive Pow", slice => {
+            var algo = new RecursivePowerAlgorithm((x: baseX, n: slice.Length));
+            algo.Execute();
+            return algo.Steps;
+        }, isStep: true);
+
+        RegisterTaskInfo("Fast Pow", slice => {
+            var algo = new FastPowerAlgorithm((x: baseX, n: slice.Length));
+            algo.Execute();
+            return algo.Steps;
+        }, isStep: true);
+
+        RegisterTaskInfo("Classic Fast Pow", slice => {
+            var algo = new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length));
+            algo.Execute();
+            return algo.Steps;
+        }, isStep: true);
+        
+        
+        
         RegisterTaskInfo("Aho-Corasick", slice => new AhoCorasickAlgorithm(slice).RunBench(5)); // Добавлено
         RegisterTaskInfo("Heap Sort", slice => new HeapSortAlgorithm(slice).RunBench(5));
 
@@ -541,14 +561,15 @@ public partial class MainWindow : Window
                     seriesData.Add((xs, yApprox, "Теория"));
                 }
 
-                AttachHoverTooltip(plotControl, seriesData);
+                string unit = task.IsStepMeasurement ? "шагов" : "мс";
+                AttachHoverTooltip(plotControl, seriesData, unit);
 
                 plotControl.Plot.Axes.AutoScale();
             }
 
             plotControl.Plot.Title(task.Name);
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel("Время (мс)");
+            plotControl.Plot.YLabel(task.IsStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
@@ -953,11 +974,15 @@ public partial class MainWindow : Window
                 }
             }
 
-            AttachHoverTooltip(plotControl, seriesData);
+            bool isStepMeasurement = AlgorithmItems.FirstOrDefault(a => a.Name == algoName)?.Task?.IsStepMeasurement ?? false;
+            
+            string unit = isStepMeasurement ? "шагов" : "мс";
+            AttachHoverTooltip(plotControl, seriesData, unit);
 
             plotControl.Plot.Title(algoName, size: null);
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel("Время (мс)");
+            
+            plotControl.Plot.YLabel(isStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
 
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();
@@ -1002,7 +1027,7 @@ public partial class MainWindow : Window
         control.SetMultipleResults(seriesList);
     }
 
-    private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries)
+    private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries, string unit = "мс")
     {
         ToolTip.SetShowDelay(plotControl, 0);
 
@@ -1054,8 +1079,8 @@ public partial class MainWindow : Window
             if (found)
             {
                 string text = string.IsNullOrEmpty(closestName)
-                    ? $"N: {closestX}\nВремя: {closestY:F3} мс"
-                    : $"{closestName}\nN: {closestX}\nВремя: {closestY:F3} мс";
+                    ? $"N: {closestX}\nЗначение: {closestY:F3} {unit}"
+                    : $"{closestName}\nN: {closestX}\nЗначение: {closestY:F3} {unit}";
 
                 ToolTip.SetTip(plotControl, text);
                 ToolTip.SetIsOpen(plotControl, true);

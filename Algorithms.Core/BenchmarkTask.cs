@@ -13,10 +13,12 @@ public class BenchmarkTask
     // Универсальная обертка: принимает срез данных double[], возвращает время (мс)
     public Func<double[], double> RunMeasurement { get; }
     
+    public bool IsStepMeasurement { get; set; }
+    
     public List<(int N, double TimeMs, double TimeTicks)> Results { get; } 
         = new List<(int, double, double)>(2000);
 
-    public BenchmarkTask(string name, Func<double[], double> runMeasurement)
+    public BenchmarkTask(string name, Func<double[], double> runMeasurement, bool isStepMeasurement = false)
     {
         Name = name;
         RunMeasurement = runMeasurement;

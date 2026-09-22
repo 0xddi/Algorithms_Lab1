@@ -8,7 +8,9 @@ namespace Algorithms.Core;
 /// </summary>
 /// <typeparam name="TInput">Тип входных данных для алгоритма (например, int[], double[] и т.д.).</typeparam>
 public abstract class Algorithm<TInput>
+
 {
+    
     /// <summary>
     /// Ссылка на исходные немодифицированные данные, переданные при создании.
     /// </summary>
@@ -102,5 +104,13 @@ public abstract class Algorithm<TInput>
 
         // Возвращаем среднее время в миллисекундах
         return (totalSeconds / benchCycles) * 1000.0;
+    }
+    
+    
+    
+    public void Execute()
+    {
+        TInput isolatedInput = CloneInput(Data);
+        ExecuteCore(isolatedInput);
     }
 }

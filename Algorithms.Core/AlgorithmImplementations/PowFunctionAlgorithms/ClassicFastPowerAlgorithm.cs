@@ -10,6 +10,8 @@ public sealed class ClassicFastPowerAlgorithm : Algorithm<(double x, int n)>
     public override TimeComplexity Complexity => TimeComplexity.Logarithmic;
 
     public ClassicFastPowerAlgorithm((double x, int n) data) : base(data) { }
+    
+    public long Steps { get; protected set; } // счётчик шагов
 
     protected override void ExecuteCore((double x, int n) input)
     {
@@ -29,6 +31,7 @@ public sealed class ClassicFastPowerAlgorithm : Algorithm<(double x, int n)>
                 f = f * c;
                 k = k - 1;
             }
+            Steps++;
         }
     }
 

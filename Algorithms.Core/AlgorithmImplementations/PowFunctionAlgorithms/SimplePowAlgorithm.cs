@@ -10,6 +10,8 @@ public sealed class SimplePowAlgorithm : Algorithm<(double x, int n)>
     public override TimeComplexity Complexity => TimeComplexity.Linear;
 
     public SimplePowAlgorithm((double x, int n) data) : base(data) { }
+    
+    public long Steps { get; protected set; } // счётчик шагов
 
     protected override void ExecuteCore((double x, int n) input)
     {
@@ -20,6 +22,7 @@ public sealed class SimplePowAlgorithm : Algorithm<(double x, int n)>
         {
             f = f * input.x;
             k = k + 1;
+            Steps++; 
         }
     }
 
