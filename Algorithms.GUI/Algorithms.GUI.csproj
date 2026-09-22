@@ -33,5 +33,8 @@
         <Compile Update="Views\HistoryWindow.axaml.cs">
             <DependentUpon>HistoryWindow.axaml</DependentUpon>
         </Compile>
+        <Compile Update="Views\MainWindow.githublink.cs">
+          <DependentUpon>MainWindow.axaml</DependentUpon>
+        </Compile>
     </ItemGroup>
 </Project>

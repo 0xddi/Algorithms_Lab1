@@ -209,19 +209,25 @@ namespace Algorithms.GUI.Views
             ResetView();
         }
 
-        private void ResetViewButton_Click(object? sender, RoutedEventArgs e) => ResetView();
-
-        private void ResetView()
+        /// <summary>
+        /// Сбрасывает поворот, масштаб и сдвиг к значениям по умолчанию.
+        /// </summary>
+        public void ResetView()
         {
             _rotationAngle = DefaultRotation;
             _zoom = _defaultZoom;
             _panOffsetX = 0;
             _panOffsetY = DefaultPanOffsetY;
+            DrawSurface();
+        }
 
-            if (Math.Abs(RotationSlider.Value - _rotationAngle) > 0.01)
-                RotationSlider.Value = _rotationAngle;
-            else
-                DrawSurface();
+        /// <summary>
+        /// Меняет масштаб поверхности на заданный множитель (например, 1.2 — приблизить).
+        /// </summary>
+        public void ZoomBy(double factor)
+        {
+            _zoom = Math.Clamp(_zoom * factor, 0.2, 5.0);
+            DrawSurface();
         }
 
         private double ComputeAutoFitZoom(double canvasW, double canvasH)
@@ -277,12 +283,6 @@ namespace Algorithms.GUI.Views
             return Math.Clamp(Math.Min(fitX, fitY), 0.2, 5.0);
         }
 
-        private void RotationSlider_ValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
-        {
-            _rotationAngle = e.NewValue;
-            DrawSurface();
-        }
-
         private void DrawCanvas_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
         {
             double zoomFactor = e.Delta.Y > 0 ? 1.1 : 0.9;
@@ -309,7 +309,7 @@ namespace Algorithms.GUI.Views
                 double deltaX = pos.X - _lastPointerPosition.X;
                 _rotationAngle = (_rotationAngle + deltaX * 0.5) % 360;
                 if (_rotationAngle < 0) _rotationAngle += 360;
-                RotationSlider.Value = _rotationAngle;
+                DrawSurface();
             }
             else if (_isPanning)
             {

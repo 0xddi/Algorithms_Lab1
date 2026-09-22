@@ -167,29 +167,23 @@ public partial class MainWindow : Window
         var border = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Height = 520,
+            Height = 550,
             Margin = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(4),
+            Padding = new Avalonia.Thickness(8),
             Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
             BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(6)
+            CornerRadius = new Avalonia.CornerRadius(12)
         };
-
-        var stack = new StackPanel { Spacing = 2 };
-        stack.Children.Add(new TextBlock
-        {
-            Text = label,
-            Foreground = SolidColorBrush.Parse("#DCDCDC"),
-            FontWeight = Avalonia.Media.FontWeight.SemiBold,
-            Margin = new Avalonia.Thickness(4, 2, 0, 0)
-        });
 
         var control = new MatrixSurfaceControl
         {
             Height = 480,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
+
+        var stack = new StackPanel { Spacing = 2 };
+        stack.Children.Add(BuildMatrixHeader(label, control));
         stack.Children.Add(control);
 
         border.Child = stack;
@@ -208,13 +202,13 @@ public partial class MainWindow : Window
                 {
                     Name = "Эксперимент",
                     Results = results,
-                    Color = Color.Parse("#009688")
+                    Color = Color.Parse("#3794FF")
                 },
                 new MatrixSeries
                 {
                     Name = $"Теория (MSE: {mse:E2})",
                     Results = approxResults,
-                    Color = Color.Parse("#40FF9800") // Первые символы "40" задают высокую прозрачность
+                    Color = Color.Parse("#40FFB35C") // Первые символы "40" задают высокую прозрачность
                 }
             };
 
@@ -244,19 +238,20 @@ public partial class MainWindow : Window
 
         var border = new Border
         {
-            Width = 460, Height = 320, Margin = new Avalonia.Thickness(8),
+            HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(8),
             Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
             BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(6)
+            CornerRadius = new Avalonia.CornerRadius(12)
         };
 
         var plotControl = new AvaPlot
             { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
         plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
         plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
+        plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
 
         var heatmap = plotControl.Plot.Add.Heatmap(data);
         heatmap.Colormap = new ScottPlot.Colormaps.Viridis();
@@ -276,7 +271,7 @@ public partial class MainWindow : Window
         plotControl.Plot.Axes.AutoScale();
         plotControl.Refresh();
 
-        border.Child = plotControl;
+        border.Child = WrapWithZoomToolbar(plotControl, plotControl);
         PlotsPanel.Children.Add(border);
         _activePlots.Add(plotControl);
     }
@@ -339,7 +334,6 @@ public partial class MainWindow : Window
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
         _activePlots.Clear();
-        ZoomControlPanel.IsVisible = false;
 
         _benchmarker = new Benchmarker(inputData);
         foreach (var task in selectedTasks)
@@ -441,7 +435,6 @@ public partial class MainWindow : Window
                 RenderMatrixPanel(_lastMatrixResults);
             }
             
-            ZoomControlPanel.IsVisible = _activePlots.Any();
 
             _historyWindow?.LoadHistoryFromDb();
 
@@ -476,12 +469,12 @@ public partial class MainWindow : Window
         {
             var border = new Border
             {
-                Width = 640, Height = 320, Margin = new Avalonia.Thickness(8), // Увеличена ширина для панели легенды
+                HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
                 Padding = new Avalonia.Thickness(8),
                 Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
                 BorderThickness = new Avalonia.Thickness(1),
-                CornerRadius = new Avalonia.CornerRadius(6)
+                CornerRadius = new Avalonia.CornerRadius(12)
             };
 
             // Разделяем область на график и панель легенды справа
@@ -492,13 +485,14 @@ public partial class MainWindow : Window
 
             plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
+            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
 
             Grid.SetColumn(plotControl, 0);
             grid.Children.Add(plotControl);
 
             // Контейнер легенды (с прокруткой, если элементов слишком много)
-            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden };
             var legendPanel = new StackPanel
             {
                 Spacing = 5, VerticalAlignment = VerticalAlignment.Top, Margin = new Avalonia.Thickness(10, 10, 5, 5)
@@ -510,7 +504,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#FFFFFF"),
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -522,10 +516,10 @@ public partial class MainWindow : Window
             {
                 var empiricalScatter = plotControl.Plot.Add.Scatter(xs, ys);
                 empiricalScatter.LineWidth = 2;
-                empiricalScatter.Color = ScottPlot.Color.FromHex("#009688");
+                empiricalScatter.Color = ScottPlot.Color.FromHex("#3794FF");
 
                 legendPanel.Children.Add(
-                    CreateCustomLegendItem(plotControl, empiricalScatter, "Эксперимент", "#009688"));
+                    CreateCustomLegendItem(plotControl, empiricalScatter, "Эксперимент", "#3794FF"));
 
                 if (showApprox)
                 {
@@ -533,11 +527,11 @@ public partial class MainWindow : Window
                     var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                     approxScatter.LineWidth = 2;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                    approxScatter.Color = ScottPlot.Color.FromHex("#FF9800");
+                    approxScatter.Color = ScottPlot.Color.FromHex("#FFB35C");
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"Теория (MSE: {mse:E2})", "#FF9800"));
+                        $"Теория (MSE: {mse:E2})", "#FFB35C"));
                 }
 
                 var seriesData = new List<(double[], double[], string)> { (xs, ys, "Эксперимент") };
@@ -557,12 +551,11 @@ public partial class MainWindow : Window
             plotControl.Plot.YLabel("Время (мс)");
             plotControl.Refresh();
 
-            border.Child = grid;
+            border.Child = WrapWithZoomToolbar(grid, plotControl);
             PlotsPanel.Children.Add(border);
             _activePlots.Add(plotControl);
         }
         
-        ZoomControlPanel.IsVisible = _activePlots.Any();
     }
 
 
@@ -570,14 +563,19 @@ public partial class MainWindow : Window
         string colorHex)
     {
         var panel = new StackPanel
-            { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Avalonia.Thickness(0, 4) };
+            { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Avalonia.Thickness(0, 4), VerticalAlignment = VerticalAlignment.Center };
 
         // Кнопка-глазик
         var eyeButton = new Avalonia.Controls.Primitives.ToggleButton
         {
             IsChecked = true, // По умолчанию график отображается
             Content = "👁",
-            Padding = new Avalonia.Thickness(4, 2),
+            Width = 28,
+            Height = 28,
+            Padding = new Avalonia.Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
             Background = Brushes.Transparent,
             Foreground = SolidColorBrush.Parse("#CCCCCC"),
             FontSize = 14,
@@ -606,7 +604,7 @@ public partial class MainWindow : Window
         var textBlock = new TextBlock
         {
             Text = name,
-            Foreground = SolidColorBrush.Parse("#E0E0E0"),
+            Foreground = SolidColorBrush.Parse("#D4D4D4"),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             FontSize = 12,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
@@ -644,27 +642,116 @@ public partial class MainWindow : Window
     private void DeselectAll_Click(object? sender, RoutedEventArgs e) =>
         AlgorithmItems.ToList().ForEach(i => i.IsSelected = false);
 
-    private void ZoomInX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.2, 1.0);
-    private void ZoomOutX_Click(object? sender, RoutedEventArgs e) => ZoomPlots(0.8, 1.0);
-    private void ZoomInY_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.0, 1.2);
-    private void ZoomOutY_Click(object? sender, RoutedEventArgs e) => ZoomPlots(1.0, 0.8);
+    // ===== Панель масштаба отдельно для каждой карточки =====
 
-    private void ZoomPlots(double fracX, double fracY)
+    private static Button CreateToolButton(string text, Action onClick)
     {
-        foreach (var plot in _activePlots)
-        {
-            plot.Plot.Axes.Zoom(fracX, fracY);
-            plot.Refresh();
-        }
+        var button = new Button { Content = text };
+        button.Classes.Add("tool");
+        button.Click += (_, _) => onClick();
+        return button;
     }
 
-    private void ResetZoom_Click(object? sender, RoutedEventArgs e)
+    private static Control CreateZoomToolbar(
+        IEnumerable<(string Label, Action ZoomIn, Action ZoomOut)> axes, Action reset)
     {
-        foreach (var plot in _activePlots)
+        var panel = new StackPanel
         {
-            plot.Plot.Axes.AutoScale();
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Avalonia.Thickness(0, 0, 0, 6)
+        };
+
+        foreach (var (label, zoomIn, zoomOut) in axes)
+        {
+            var text = new TextBlock
+            {
+                Text = label,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Avalonia.Thickness(6, 0, 0, 0)
+            };
+            text.Classes.Add("muted");
+            panel.Children.Add(text);
+            panel.Children.Add(CreateToolButton("+", zoomIn));
+            panel.Children.Add(CreateToolButton("-", zoomOut));
+        }
+
+        var resetButton = new Button
+        {
+            Content = "Сбросить масштаб",
+            Height = 32,
+            Margin = new Avalonia.Thickness(6, 0, 0, 0)
+        };
+        resetButton.Click += (_, _) => reset();
+        panel.Children.Add(resetButton);
+
+        return panel;
+    }
+
+    /// <summary>
+    /// Оборачивает содержимое 2D-карточки: сверху её собственная панель масштаба.
+    /// </summary>
+    private static Control WrapWithZoomToolbar(Control content, AvaPlot plot)
+    {
+        void Zoom(double fx, double fy)
+        {
+            plot.Plot.Axes.Zoom(fx, fy);
             plot.Refresh();
         }
+
+        var toolbar = CreateZoomToolbar(
+            new (string, Action, Action)[]
+            {
+                ("Ось X:", () => Zoom(1.2, 1.0), () => Zoom(0.8, 1.0)),
+                ("Ось Y:", () => Zoom(1.0, 1.2), () => Zoom(1.0, 0.8))
+            },
+            () =>
+            {
+                plot.Plot.Axes.AutoScale();
+                plot.Refresh();
+            });
+
+        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
+        Grid.SetRow(toolbar, 0);
+        Grid.SetRow(content, 1);
+        root.Children.Add(toolbar);
+        root.Children.Add(content);
+        return root;
+    }
+
+    /// <summary>
+    /// Шапка карточки матрицы: заголовок слева, панель масштаба справа.
+    /// </summary>
+    private static Control BuildMatrixHeader(string label, MatrixSurfaceControl control)
+    {
+        var header = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            Margin = new Avalonia.Thickness(4, 0, 0, 0)
+        };
+
+        var title = new TextBlock
+        {
+            Text = label,
+            Foreground = SolidColorBrush.Parse("#D4D4D4"),
+            FontWeight = Avalonia.Media.FontWeight.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var toolbar = CreateZoomToolbar(
+            new (string, Action, Action)[]
+            {
+                ("Масштаб:", () => control.ZoomBy(1.2), () => control.ZoomBy(1 / 1.2))
+            },
+            () => control.ResetView());
+
+        Grid.SetColumn(title, 0);
+        Grid.SetColumn(toolbar, 1);
+        header.Children.Add(title);
+        header.Children.Add(toolbar);
+        return header;
     }
 
     private void CompareHistoryButton_Click(object? sender, RoutedEventArgs e)
@@ -696,7 +783,6 @@ public partial class MainWindow : Window
 
         if (sessionsToCompare == null || !sessionsToCompare.Any())
         {
-            ZoomControlPanel.IsVisible = false;
             return;
         }
 
@@ -704,7 +790,7 @@ public partial class MainWindow : Window
         var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
         var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
 
-        var colors = new[] { "#009688", "#E91E63", "#FFC107", "#2196F3", "#9C27B0", "#4CAF50", "#FF5722" };
+        var colors = new[] { "#3794FF", "#FF7EB6", "#FFB35C", "#5EE0C0", "#B794F6", "#8BD450", "#FF8A65" };
 
         foreach (var algoName in uniqueAlgorithms)
         {
@@ -761,7 +847,7 @@ public partial class MainWindow : Window
                             // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
                             Color = seriesList.Count > 1
                                 ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B)
-                                : Color.Parse("#FF9800")
+                                : Color.Parse("#FFB35C")
                         });
                     }
 
@@ -781,12 +867,12 @@ public partial class MainWindow : Window
 
             var border = new Border
             {
-                Width = 640, Height = 320, Margin = new Avalonia.Thickness(8),
+                HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
                 Padding = new Avalonia.Thickness(8),
                 Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
                 BorderThickness = new Avalonia.Thickness(1),
-                CornerRadius = new Avalonia.CornerRadius(6)
+                CornerRadius = new Avalonia.CornerRadius(12)
             };
 
             var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, 180") };
@@ -797,12 +883,13 @@ public partial class MainWindow : Window
             };
             plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
             plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#DCDCDC"));
+            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
+            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
 
             Grid.SetColumn(plotControl, 0);
             grid.Children.Add(plotControl);
 
-            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden };
             var legendPanel = new StackPanel
             {
                 Spacing = 5, VerticalAlignment = VerticalAlignment.Top, Margin = new Avalonia.Thickness(10, 10, 5, 5)
@@ -814,7 +901,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#FFFFFF"),
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -841,7 +928,7 @@ public partial class MainWindow : Window
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
 
-                string colorHex = isShared ? colors[i % colors.Length] : "#009688";
+                string colorHex = isShared ? colors[i % colors.Length] : "#3794FF";
                 scatter.Color = ScottPlot.Color.FromHex(colorHex);
 
                 string legendText = isShared ? $"№ {i + 1}" : "Эксперимент";
@@ -855,7 +942,7 @@ public partial class MainWindow : Window
                     approxScatter.LineWidth = 1.5f;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
 
-                    string approxColorHex = isShared ? colors[i % colors.Length] : "#FF9800";
+                    string approxColorHex = isShared ? colors[i % colors.Length] : "#FFB35C";
                     approxScatter.Color = ScottPlot.Color.FromHex(approxColorHex);
                     approxScatter.MarkerSize = 0;
 
@@ -875,13 +962,12 @@ public partial class MainWindow : Window
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();
 
-            border.Child = grid;
+            border.Child = WrapWithZoomToolbar(grid, plotControl);
             PlotsPanel.Children.Add(border);
             _activePlots.Add(plotControl);
         }
 
         StatusText.Text = $"Отображено данных на графиках: {sessionsToCompare.Count} сессий";
-        ZoomControlPanel.IsVisible = _activePlots.Any();
     }
 
     private void RenderMatrixPanelForComparison(List<MatrixSeries> seriesList,
@@ -892,29 +978,23 @@ public partial class MainWindow : Window
         var border = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Height = 520,
+            Height = 550,
             Margin = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(4),
+            Padding = new Avalonia.Thickness(8),
             Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E3E"),
+            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
             BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(6)
+            CornerRadius = new Avalonia.CornerRadius(12)
         };
-
-        var stack = new StackPanel { Spacing = 2 };
-        stack.Children.Add(new TextBlock
-        {
-            Text = label,
-            Foreground = SolidColorBrush.Parse("#DCDCDC"),
-            FontWeight = Avalonia.Media.FontWeight.SemiBold,
-            Margin = new Avalonia.Thickness(4, 2, 0, 0)
-        });
 
         var control = new MatrixSurfaceControl
         {
             Height = 480,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
+
+        var stack = new StackPanel { Spacing = 2 };
+        stack.Children.Add(BuildMatrixHeader(label, control));
         stack.Children.Add(control);
 
         border.Child = stack;
