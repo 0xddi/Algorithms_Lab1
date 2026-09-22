@@ -34,6 +34,8 @@ public partial class MainWindow : Window
 
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
+    
+    private double[] _lastInputData = Array.Empty<double>();
 
     public MainWindow()
     {
@@ -297,33 +299,83 @@ public partial class MainWindow : Window
     }
 
     private double[] GenerateDataFromUI()
+{
+    if (RangeDataRadio.IsChecked == true)
     {
-        if (RangeDataRadio.IsChecked == true)
+        if (double.TryParse(StartValBox.Text, out double start) &&
+            double.TryParse(EndValBox.Text, out double end) &&
+            double.TryParse(StepValBox.Text, out double step) &&
+            step > 0)
         {
-            if (double.TryParse(StartValBox.Text, out double start) &&
-                double.TryParse(EndValBox.Text, out double end) &&
-                double.TryParse(StepValBox.Text, out double step) && step > 0)
-            {
-                int count = (int)Math.Max(0, (end - start) / step + 1);
-                double[] arr = new double[count];
-                for (int i = 0; i < count; i++)
-                    arr[i] = start + i * step;
-                return arr;
-            }
-        }
-        else if (RandomDataRadio.IsChecked == true)
-        {
-            if (int.TryParse(CountValBox.Text, out int randomCount) && randomCount > 0)
-            {
-                double[] arr = new double[randomCount];
-                for (int i = 0; i < randomCount; i++)
-                    arr[i] = Random.Shared.NextDouble() * 100.0;
-                return arr;
-            }
-        }
+            const double tolerance = 1e-9;
+            var values = new List<double>();
 
-        return Array.Empty<double>();
+            double current = start;
+
+            if (end >= start)
+            {
+                while (current <= end + tolerance)
+                {
+                    values.Add(current);
+
+                    double next = current + step;
+
+                    if (next > end + tolerance)
+                    {
+                        if (Math.Abs(values[^1] - end) > tolerance)
+                        {
+                            values.Add(end);
+                        }
+
+                        break;
+                    }
+
+                    current = next;
+                }
+            }
+            else
+            {
+                while (current >= end - tolerance)
+                {
+                    values.Add(current);
+
+                    double next = current - step;
+
+                    if (next < end - tolerance)
+                    {
+                        if (Math.Abs(values[^1] - end) > tolerance)
+                        {
+                            values.Add(end);
+                        }
+
+                        break;
+                    }
+
+                    current = next;
+                }
+            }
+
+            return values.ToArray();
+        }
     }
+    else if (RandomDataRadio.IsChecked == true)
+    {
+        if (int.TryParse(CountValBox.Text, out int randomCount) &&
+            randomCount > 0)
+        {
+            double[] arr = new double[randomCount];
+
+            for (int i = 0; i < randomCount; i++)
+            {
+                arr[i] = Random.Shared.NextDouble() * 100.0;
+            }
+
+            return arr;
+        }
+    }
+
+    return Array.Empty<double>();
+}
 
     private async void RunButton_Click(object? sender, RoutedEventArgs e)
     {
@@ -337,6 +389,7 @@ public partial class MainWindow : Window
         }
 
         double[] inputData = GenerateDataFromUI();
+        _lastInputData = inputData;
         if (selectedTasks.Count > 0 && inputData.Length == 0)
         {
             StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
@@ -529,7 +582,11 @@ public partial class MainWindow : Window
             };
             legendPanel.Children.Add(titleText);
 
-            double[] xs = task.Results.Select(r => (double)r.N).ToArray();
+            double[] xs = task.Results
+                .Select(r => r.N - 1 < _lastInputData.Length
+                    ? _lastInputData[r.N - 1]
+                    : (double)r.N)
+                .ToArray();
             double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
 
             if (xs.Length > 0 && ys.Length > 0)

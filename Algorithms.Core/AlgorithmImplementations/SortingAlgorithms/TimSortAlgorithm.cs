@@ -9,7 +9,7 @@ public sealed class TimSortAlgorithm : Algorithm<double[]>
 
     public TimSortAlgorithm(double[] data) : base(data) { }
 
-    protected override void ExecuteCore(double[] input)
+    protected override void ExecuteCore(double[] input) // 
     {
         int n = input.Length;
 
