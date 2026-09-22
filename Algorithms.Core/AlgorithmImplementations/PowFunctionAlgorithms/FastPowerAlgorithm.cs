@@ -35,6 +35,7 @@ public sealed class FastPowerAlgorithm : Algorithm<(double x, int n)>
             {
                 f = f * c;
             }
+            Steps++;
             
             if (k == 0)
             {
