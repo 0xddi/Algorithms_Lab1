@@ -392,6 +392,9 @@ namespace Algorithms.GUI.Views
             AddAxisLabel(Project(rEnd, 0, 0), $"n={_nValues[^1]}");
             AddAxisLabel(Project(0, cEnd, 0), $"m={_mValues[^1]}");
 
+            // Вертикальная шкала времени (мс) в дальнем углу основания
+            DrawTimeAxis(Project, rEnd, cEnd);
+
             var elementsToDraw = new List<(Control Element, double Depth)>();
 
             foreach (var series in _seriesList)
@@ -489,6 +492,67 @@ namespace Algorithms.GUI.Views
             {
                 DrawCanvas.Children.Add(element);
             }
+        }
+
+        private void DrawTimeAxis(Func<double, double, double, (double sx, double sy)> project, int rEnd, int cEnd)
+        {
+            if (_maxTime <= 0) return;
+
+            const int tickCount = 4;
+            var axisBase = project(rEnd, cEnd, 0);
+            var axisTop = project(rEnd, cEnd, _maxTime);
+
+            var axisLine = new Line
+            {
+                StartPoint = new Point(axisBase.sx, axisBase.sy),
+                EndPoint = new Point(axisTop.sx, axisTop.sy),
+                Stroke = new SolidColorBrush(Color.FromRgb(0x37, 0x94, 0xFF)),
+                StrokeThickness = 1.4
+            };
+            DrawCanvas.Children.Add(axisLine);
+
+            for (int t = 0; t <= tickCount; t++)
+            {
+                double value = _maxTime * t / tickCount;
+                var p = project(rEnd, cEnd, value);
+
+                var tick = new Line
+                {
+                    StartPoint = new Point(p.sx - 5, p.sy),
+                    EndPoint = new Point(p.sx + 5, p.sy),
+                    Stroke = new SolidColorBrush(Color.FromRgb(0xB4, 0xB4, 0xB4)),
+                    StrokeThickness = 1
+                };
+                DrawCanvas.Children.Add(tick);
+
+                string valueText = value switch
+                {
+                    < 1 => $"{value:F2}",
+                    < 10 => $"{value:F1}",
+                    _ => $"{value:F0}"
+                };
+
+                var label = new TextBlock
+                {
+                    Text = $"{valueText} мс",
+                    FontSize = 10,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
+                };
+                Canvas.SetLeft(label, p.sx + 7);
+                Canvas.SetTop(label, p.sy - 7);
+                DrawCanvas.Children.Add(label);
+            }
+
+            var axisTitle = new TextBlock
+            {
+                Text = "Время (мс)",
+                FontSize = 10,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
+            };
+            Canvas.SetLeft(axisTitle, axisTop.sx + 7);
+            Canvas.SetTop(axisTitle, axisTop.sy - 22);
+            DrawCanvas.Children.Add(axisTitle);
         }
 
         private void AddAxisLabel((double sx, double sy) pos, string text)
