@@ -18,7 +18,6 @@ public sealed class RecursivePowerAlgorithm : Algorithm<(double x, int n)>
 
     private double RecPow(double x, int n)
     {
-        Steps++;
         if (n == 0)
         {
             return 1;

@@ -42,13 +42,12 @@ public class Benchmarker
             GC.WaitForPendingFinalizers();
             GC.Collect();
 
-            var cachedData = useCache
+            var cachedData = useCache 
                 ? db.Results
                     .Where(r => r.AlgorithmName == task.Name)
                     .GroupBy(r => r.N)
-                    .ToDictionary(g => g.Key,
-                        g => g.OrderByDescending(r => r.ExperimentDate).First())
-                : new Dictionary<int, ExperimentResult>();
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.ExperimentDate).First().ElapsedTimeMs)
+                : new Dictionary<int, double>();
 
             try
             {
@@ -59,16 +58,18 @@ public class Benchmarker
 
                     int currentN = i + 1;
 
-                    if (useCache && cachedData.TryGetValue(currentN, out var cached))
+                    if (useCache && cachedData.TryGetValue(currentN, out double cachedTime))
                     {
-                        task.Results.Add((currentN, cached.ElapsedTimeMs, cached.StepCount ?? 0));
+                        double cachedTicks = cachedTime * TimeSpan.TicksPerMillisecond;
+                        task.Results.Add((currentN, cachedTime, cachedTicks));
                     }
                     else
                     {
                         var currentDataSlice = _masterData[0..currentN];
-                        var (avgTimeMs, steps) = task.RunMeasurement(currentDataSlice);
+                        double avgTimeMs = task.RunMeasurement(currentDataSlice); 
+                        double avgTicks = avgTimeMs * TimeSpan.TicksPerMillisecond;
 
-                        task.Results.Add((currentN, avgTimeMs, steps));
+                        task.Results.Add((currentN, avgTimeMs, avgTicks));
 
                         db.Results.Add(new ExperimentResult
                         {
@@ -77,7 +78,7 @@ public class Benchmarker
                             RunNumber = 0,
                             ElapsedTimeMs = avgTimeMs,
                             ExperimentDate = experimentDate,
-                            StepCount = steps          // ← было null
+                            StepCount = null 
                         });
                     }
 

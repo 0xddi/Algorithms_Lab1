@@ -16,68 +16,43 @@ class Program
 
         var bench = new Benchmarker(numbers);
 
-        // Вспомогательные методы для краткости
-        void AddTimeTask(string name, Func<double[], double> measurement)
-        {
-            bench.AddTask(new BenchmarkTask(name, slice => (measurement(slice), 0L)));
-        }
-
-        void AddStepTask(string name, Func<double[], Algorithm<(double x, int n)>> factory)
-        {
-            bench.AddTask(new BenchmarkTask(name, slice =>
-            {
-                var algo = factory(slice);
-                double t = algo.RunBench(5);
-                return (t, algo.Steps);
-            }));
-        }
+        // ==========================================
+        // 1. Сортировки (SortingAlgorithms)
+        // ==========================================
+        bench.AddTask(new BenchmarkTask("Bubble Sort", slice => new BubbleSortAlgorithm(slice).RunBench(5)));
+        bench.AddTask(new BenchmarkTask("Quick Sort", slice => new QuickSortAlgorithm(slice).RunBench(5)));
+        bench.AddTask(new BenchmarkTask("Tim Sort", slice => new TimSortAlgorithm(slice).RunBench(5)));
 
         // ==========================================
-        // 1. Сортировки
+        // 2. Математические функции над вектором (MathFunctionAlgorithms)
         // ==========================================
-        AddTimeTask("Bubble Sort", slice => new BubbleSortAlgorithm(slice).RunBench(5));
-        AddTimeTask("Quick Sort",  slice => new QuickSortAlgorithm(slice).RunBench(5));
-        AddTimeTask("Tim Sort",    slice => new TimSortAlgorithm(slice).RunBench(5));
+        bench.AddTask(new BenchmarkTask("Constant Function f(v)=1", slice => new ConstantFunctionAlgorithm(slice).RunBench(5)));
+        bench.AddTask(new BenchmarkTask("Sum Algorithm", slice => new SumAlgorithm(slice).RunBench(5)));
+        bench.AddTask(new BenchmarkTask("Product Algorithm", slice => new ProductAlgorithm(slice).RunBench(5)));
 
         // ==========================================
-        // 2. Математические функции над вектором
+        // 3. Вычисление полиномов при x = 1.5 (PolynomialAlgorithms)
         // ==========================================
-        AddTimeTask("Constant Function f(v)=1", slice => new ConstantFunctionAlgorithm(slice).RunBench(5));
-        AddTimeTask("Sum Algorithm",            slice => new SumAlgorithm(slice).RunBench(5));
-        AddTimeTask("Product Algorithm",        slice => new ProductAlgorithm(slice).RunBench(5));
+        bench.AddTask(new BenchmarkTask("Naive Polynomial", slice => new NaivePolynomialAlgorithm(slice).RunBench(5)));
+        bench.AddTask(new BenchmarkTask("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5)));
 
         // ==========================================
-        // 3. Полиномы при x = 1.5
-        // ==========================================
-        AddTimeTask("Naive Polynomial",  slice => new NaivePolynomialAlgorithm(slice).RunBench(5));
-        AddTimeTask("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5));
-
-        // ==========================================
-        // 4. Возведение в степень x^n
+        // 4. Возведение в степень x^n (PowFunctionAlgorithms)
+        // Передается кортеж (x = 1.5, n = длина среза)
         // ==========================================
         const double baseX = 1.5;
 
-        AddStepTask("Simple Pow (x^n)",
-            slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)));
+        bench.AddTask(new BenchmarkTask("Simple Pow (x^n)", 
+            slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        AddStepTask("Recursive Pow",
-            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)));
+        bench.AddTask(new BenchmarkTask("Recursive Pow", 
+            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        AddStepTask("Fast Pow",
-            slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)));
+        bench.AddTask(new BenchmarkTask("Fast Pow", 
+            slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        AddStepTask("Classic Fast Pow",
-            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)));
+        bench.AddTask(new BenchmarkTask("Classic Fast Pow", 
+            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5)));
 
-        // ==========================================
-        // 5. Запуск всех задач
-        // ==========================================
-        bench.RunFiltered(bench.Tasks, useCache: true, benchCycles: 5);
-
-        // Небольшой вывод, чтобы убедиться, что всё отработало
-        foreach (var task in bench.Tasks)
-        {
-            Console.WriteLine($"{task.Name}: {task.Results.Count} точек");
-        }
     }
-}
+}   

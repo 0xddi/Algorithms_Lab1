@@ -24,10 +24,6 @@ public partial class MainWindow : Window
 {
     private Benchmarker? _benchmarker;
     private readonly List<AvaPlot> _activePlots = new();
-    private static readonly HashSet<string> StepBasedAlgorithms = new()
-    {
-        "Simple Pow (x^n)", "Recursive Pow", "Fast Pow", "Classic Fast Pow"
-    };
     private List<BenchmarkTask> _lastExecutedTasks = new();
     private List<MatrixBenchmarkResult> _lastMatrixResults = new();
 
@@ -48,39 +44,31 @@ public partial class MainWindow : Window
 
     private void InitializeTasksList()
     {
-        void RegisterTimeTask(string name, Func<double[], double> measurement)
+        void RegisterTaskInfo(string name, Func<double[], double> measurement)
         {
-            var task = new BenchmarkTask(name, slice => (measurement(slice), 0L));
+            var task = new BenchmarkTask(name, measurement);
             AlgorithmItems.Add(new AlgorithmTaskItem { Name = name, IsSelected = true, Task = task });
         }
 
-        void RegisterStepTask(string name, Func<double[], Algorithm<(double x, int n)>> factory)
-        {
-            var task = new BenchmarkTask(name, slice =>
-            {
-                var algo = factory(slice);
-                double t = algo.RunBench(5);
-                return (t, algo.Steps);
-            });
-            AlgorithmItems.Add(new AlgorithmTaskItem { Name = name, IsSelected = true, Task = task });
-        }
-
-        RegisterTimeTask("Bubble Sort",           slice => new BubbleSortAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Quick Sort",            slice => new QuickSortAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Tim Sort",              slice => new TimSortAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Constant Function",     slice => new ConstantFunctionAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Sum Algorithm",         slice => new SumAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Product Algorithm",     slice => new ProductAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Naive Polynomial",      slice => new NaivePolynomialAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Horner Polynomial",     slice => new HornerPolynomialAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Selection Sort",        slice => new SelectionSortAlgorithm(slice).RunBench(5));
-        RegisterTimeTask("Aho-Corasick",          slice => new AhoCorasickAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Bubble Sort", slice => new BubbleSortAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Quick Sort", slice => new QuickSortAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Tim Sort", slice => new TimSortAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Constant Function", slice => new ConstantFunctionAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Sum Algorithm", slice => new SumAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Product Algorithm", slice => new ProductAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Naive Polynomial", slice => new NaivePolynomialAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Horner Polynomial", slice => new HornerPolynomialAlgorithm(slice).RunBench(5));
+        RegisterTaskInfo("Selection Sort", slice => new SelectionSortAlgorithm(slice).RunBench(5)); // Добавлено
 
         const double baseX = 1.5;
-        RegisterStepTask("Simple Pow (x^n)",  slice => new SimplePowAlgorithm       ((x: baseX, n: slice.Length)));
-        RegisterStepTask("Recursive Pow",     slice => new RecursivePowerAlgorithm  ((x: baseX, n: slice.Length)));
-        RegisterStepTask("Fast Pow",          slice => new FastPowerAlgorithm       ((x: baseX, n: slice.Length)));
-        RegisterStepTask("Classic Fast Pow",  slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)));
+        RegisterTaskInfo("Simple Pow (x^n)", slice => new SimplePowAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Recursive Pow",
+            slice => new RecursivePowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Fast Pow", slice => new FastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Classic Fast Pow",
+            slice => new ClassicFastPowerAlgorithm((x: baseX, n: slice.Length)).RunBench(5));
+        RegisterTaskInfo("Aho-Corasick", slice => new AhoCorasickAlgorithm(slice).RunBench(5)); // Добавлено
+        RegisterTaskInfo("Heap Sort", slice => new HeapSortAlgorithm(slice).RunBench(5));
 
         AlgorithmsList.ItemsSource = AlgorithmItems;
     }
@@ -521,12 +509,8 @@ public partial class MainWindow : Window
             };
             legendPanel.Children.Add(titleText);
 
-            bool isStepBased = StepBasedAlgorithms.Contains(task.Name);
-
             double[] xs = task.Results.Select(r => (double)r.N).ToArray();
-            double[] ys = isStepBased
-                ? task.Results.Select(r => (double)r.Steps).ToArray()
-                : task.Results.Select(r => r.TimeMs).ToArray();
+            double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
 
             if (xs.Length > 0 && ys.Length > 0)
             {
@@ -564,7 +548,7 @@ public partial class MainWindow : Window
 
             plotControl.Plot.Title(task.Name);
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel(isStepBased ? "Количество шагов" : "Время (мс)");
+            plotControl.Plot.YLabel("Время (мс)");
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);

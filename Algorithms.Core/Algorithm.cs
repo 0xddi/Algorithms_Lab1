@@ -9,7 +9,6 @@ namespace Algorithms.Core;
 /// <typeparam name="TInput">Тип входных данных для алгоритма (например, int[], double[] и т.д.).</typeparam>
 public abstract class Algorithm<TInput>
 {
-    public long Steps { get; protected set; } // счётчик шагов
     /// <summary>
     /// Ссылка на исходные немодифицированные данные, переданные при создании.
     /// </summary>

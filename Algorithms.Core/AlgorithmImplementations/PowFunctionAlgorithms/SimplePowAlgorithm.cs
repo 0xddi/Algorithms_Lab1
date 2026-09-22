@@ -20,7 +20,6 @@ public sealed class SimplePowAlgorithm : Algorithm<(double x, int n)>
         {
             f = f * input.x;
             k = k + 1;
-            Steps++; // одно умножение = один шаг
         }
     }
 

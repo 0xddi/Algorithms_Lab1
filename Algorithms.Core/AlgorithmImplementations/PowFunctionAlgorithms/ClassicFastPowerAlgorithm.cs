@@ -29,7 +29,6 @@ public sealed class ClassicFastPowerAlgorithm : Algorithm<(double x, int n)>
                 f = f * c;
                 k = k - 1;
             }
-            Steps++;
         }
     }
 
