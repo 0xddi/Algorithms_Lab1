@@ -101,11 +101,12 @@ public partial class MainWindow : Window
         if (n <= 0) n = 1;
         return algoName switch
         {
-            "Bubble Sort" or "Naive Polynomial" or "Selection Sort" => n * n, // O(n^2)
+            "Bubble Sort" or "Naive Polynomial" or "Selection Sort" => n * n, // O(n²)
             "Quick Sort" or "Tim Sort" or "Heap Sort" => n * Math.Log2(Math.Max(n, 1.0001)), // O(n log n)
             "Sum Algorithm" or "Product Algorithm" or "Horner Polynomial"
-                or "Simple Pow (x^n)" or "Recursive Pow" or "Aho-Corasick" => n, // O(n)
-            "Fast Pow" or "Classic Fast Pow" => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
+                or "Simple Pow (x^n)" or "Aho-Corasick" => n, // O(n)
+            "Recursive Pow" or "Fast Pow" or "Classic Fast Pow"
+                => Math.Log2(Math.Max(n, 1.0001)), // O(log n)
             "Constant Function" => 1.0, // O(1)
             _ => n
         };
