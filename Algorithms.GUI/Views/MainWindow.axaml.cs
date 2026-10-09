@@ -503,7 +503,7 @@ public partial class MainWindow : Window
             _lastMatrixResults = matrixResults ?? new List<MatrixBenchmarkResult>();
             CurrentLoadedSessions.Clear();
 
-            RenderIndividualCharts(selectedTasks);
+            RenderTaskCharts(selectedTasks);
             if (_lastMatrixResults.Any())
             {
                 RenderMatrixPanel(_lastMatrixResults);
@@ -528,6 +528,127 @@ public partial class MainWindow : Window
             CancelButton.IsEnabled = false;
             StatusText.Text = "Остановка вычислений и сохранение кэша...";
             _cancellationTokenSource.Cancel();
+        }
+    }
+
+    private void RenderTaskCharts(List<BenchmarkTask> tasks)
+    {
+        if (CombinedChartCheckBox.IsChecked == true)
+            RenderCombinedCharts(tasks);
+        else
+            RenderIndividualCharts(tasks);
+    }
+
+    private static readonly string[] CombinedPalette =
+    {
+        "#3794FF", "#FF7EB6", "#5EE0C0", "#B794F6", "#8BD450", "#FF8A65", "#FFD54F",
+        "#4DD0E1", "#F06292", "#AED581", "#9575CD", "#E57373", "#4FC3F7", "#DCE775", "#BA68C8"
+    };
+
+    /// <summary>
+    /// Draws all selected algorithms on a shared axis. Time-based and step-based
+    /// algorithms are measured in different units, so each group gets its own chart.
+    /// </summary>
+    private void RenderCombinedCharts(List<BenchmarkTask> tasks)
+    {
+        PlotsPanel.Children.Clear();
+        MatrixPanelHost.Children.Clear();
+        _activePlots.Clear();
+
+        bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
+
+        foreach (var group in tasks.Where(t => t.Results.Any()).GroupBy(t => t.IsStepMeasurement))
+        {
+            bool isStep = group.Key;
+            var groupTasks = group.ToList();
+
+            var border = new Border
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch, Height = 480, Margin = new Avalonia.Thickness(0),
+                Padding = new Avalonia.Thickness(8),
+                Background = SolidColorBrush.Parse("#252526"),
+                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+                BorderThickness = new Avalonia.Thickness(1),
+                CornerRadius = new Avalonia.CornerRadius(12)
+            };
+
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, 220") };
+
+            var plotControl = new AvaPlot
+                { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
+            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
+            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
+            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
+
+            Grid.SetColumn(plotControl, 0);
+            grid.Children.Add(plotControl);
+
+            var legendScroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            var legendPanel = new StackPanel
+            {
+                Spacing = 5, VerticalAlignment = VerticalAlignment.Top, Margin = new Avalonia.Thickness(10, 10, 5, 5)
+            };
+            legendScroll.Content = legendPanel;
+
+            Grid.SetColumn(legendScroll, 1);
+            grid.Children.Add(legendScroll);
+
+            legendPanel.Children.Add(new TextBlock
+            {
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
+                Margin = new Avalonia.Thickness(0, 0, 0, 5)
+            });
+
+            var seriesData = new List<(double[], double[], string)>();
+
+            for (int i = 0; i < groupTasks.Count; i++)
+            {
+                var task = groupTasks[i];
+                string colorHex = CombinedPalette[i % CombinedPalette.Length];
+
+                double[] xs = task.Results
+                    .Select(r => r.N - 1 < _lastInputData.Length
+                        ? _lastInputData[r.N - 1]
+                        : (double)r.N)
+                    .ToArray();
+                double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+
+                var scatter = plotControl.Plot.Add.Scatter(xs, ys);
+                scatter.LineWidth = 2;
+                scatter.MarkerSize = 3;
+                scatter.Color = ScottPlot.Color.FromHex(colorHex);
+
+                legendPanel.Children.Add(CreateCustomLegendItem(plotControl, scatter, task.Name, colorHex));
+                seriesData.Add((xs, ys, task.Name));
+
+                if (showApprox)
+                {
+                    // Same color as the experiment, dashed, so the pair is easy to match by eye
+                    var (_, mse, yApprox) = FitApproximation(xs, ys, task.Name);
+                    var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
+                    approxScatter.LineWidth = 1.5f;
+                    approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
+                    approxScatter.Color = ScottPlot.Color.FromHex(colorHex);
+                    approxScatter.MarkerSize = 0;
+
+                    legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
+                        $"{task.Name}: теория (MSE: {mse:E1})", colorHex));
+                    seriesData.Add((xs, yApprox, $"{task.Name}: теория"));
+                }
+            }
+
+            AttachHoverTooltip(plotControl, seriesData, isStep ? "шагов" : "мс");
+
+            plotControl.Plot.Title(isStep ? "Сравнение алгоритмов (шаги)" : "Сравнение алгоритмов (время)");
+            plotControl.Plot.XLabel("Размер массива (N)");
+            plotControl.Plot.YLabel(isStep ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.Axes.AutoScale();
+            plotControl.Refresh();
+
+            border.Child = WrapWithZoomToolbar(grid, plotControl);
+            PlotsPanel.Children.Add(border);
+            _activePlots.Add(plotControl);
         }
     }
 
@@ -710,7 +831,7 @@ public partial class MainWindow : Window
         }
         else if (_lastExecutedTasks.Any() || _lastMatrixResults.Any())
         {
-            RenderIndividualCharts(_lastExecutedTasks);
+            RenderTaskCharts(_lastExecutedTasks);
             if (_lastMatrixResults.Any()) RenderMatrixPanel(_lastMatrixResults);
         }
     }

@@ -294,6 +294,9 @@
                             <CheckBox Name="ShowApproxCheckBox" Content="Показывать теоретическую аппроксимацию"
                                       IsChecked="True" Foreground="#CCCCCC" Click="ShowApprox_Click" />
 
+                            <CheckBox Name="CombinedChartCheckBox" Content="Сравнить алгоритмы на одном графике"
+                                      IsChecked="False" Foreground="#CCCCCC" Click="ShowApprox_Click" />
+
                             <CheckBox Name="UseCacheCheckBox" Content="Использовать кэш (БД)" IsChecked="True"
                                       Foreground="#CCCCCC" />
                             <Button Name="CompareHistoryButton" Content="Сравнить историю из БД"
