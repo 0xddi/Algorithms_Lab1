@@ -13,7 +13,7 @@
 
         <!-- Легенда Heatmap (для одиночного запуска) -->
         <StackPanel Name="HeatmapLegendPanel" Grid.Column="1" Width="50" Margin="4" Spacing="2">
-            <TextBlock Text="T,мс" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
+            <TextBlock Name="LegendUnitText" Text="T,мс" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
             <TextBlock Name="LegendMaxText" Text="0" Foreground="#CCCCCC" FontSize="9" HorizontalAlignment="Center"/>
             <Border Width="14" Height="160" CornerRadius="3" HorizontalAlignment="Center">
                 <Border.Background>
