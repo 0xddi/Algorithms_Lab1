@@ -605,7 +605,7 @@ public partial class MainWindow : Window
                 string colorHex = CombinedPalette[i % CombinedPalette.Length];
 
                 double[] xs = task.Results.Select(r => (double)r.N).ToArray();
-                double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+                double[] ys = task.Results.Select(r => r.TimeMs / 1000.0).ToArray();
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
@@ -631,11 +631,11 @@ public partial class MainWindow : Window
                 }
             }
 
-            AttachHoverTooltip(plotControl, seriesData, isStep ? "шагов" : "мс");
+            AttachHoverTooltip(plotControl, seriesData, isStep ? "шагов" : "с");
 
             plotControl.Plot.Title(isStep ? "Сравнение алгоритмов (шаги)" : "Сравнение алгоритмов (время)");
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel(isStep ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.YLabel(isStep ? "Количество операций (шаги)" : "Время (с)");
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();
 
@@ -698,7 +698,7 @@ public partial class MainWindow : Window
             legendPanel.Children.Add(titleText);
 
             double[] xs = task.Results.Select(r => (double)r.N).ToArray();
-            double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+            double[] ys = task.Results.Select(r => r.TimeMs / 1000.0).ToArray();
 
             if (xs.Length > 0 && ys.Length > 0)
             {
@@ -729,7 +729,7 @@ public partial class MainWindow : Window
                     seriesData.Add((xs, yApprox, "Теория"));
                 }
 
-                string unit = task.IsStepMeasurement ? "шагов" : "мс";
+                string unit = task.IsStepMeasurement ? "шагов" : "с";
                 AttachHoverTooltip(plotControl, seriesData, unit);
 
                 plotControl.Plot.Axes.AutoScale();
@@ -737,7 +737,7 @@ public partial class MainWindow : Window
 
             plotControl.Plot.Title(task.Name);
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel(task.IsStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.YLabel(task.IsStepMeasurement ? "Количество операций (шаги)" : "Время (с)");
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
@@ -1112,7 +1112,7 @@ public partial class MainWindow : Window
                 if (!sessionAlgoResults.Any()) continue;
 
                 double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
-                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs / 1000.0).ToArray();
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
@@ -1144,13 +1144,13 @@ public partial class MainWindow : Window
 
             bool isStepMeasurement = AlgorithmItems.FirstOrDefault(a => a.Name == algoName)?.Task?.IsStepMeasurement ?? false;
             
-            string unit = isStepMeasurement ? "шагов" : "мс";
+            string unit = isStepMeasurement ? "шагов" : "с";
             AttachHoverTooltip(plotControl, seriesData, unit);
 
             plotControl.Plot.Title(algoName, size: null);
             plotControl.Plot.XLabel("Размер массива (N)");
             
-            plotControl.Plot.YLabel(isStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.YLabel(isStepMeasurement ? "Количество операций (шаги)" : "Время (с)");
 
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();

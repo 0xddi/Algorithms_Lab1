@@ -85,7 +85,7 @@ namespace Algorithms.GUI.Views
             _seriesList.Clear();
             _nValues = results.Select(r => r.N).Distinct().OrderBy(x => x).ToArray();
             _mValues = results.Select(r => r.M).Distinct().OrderBy(x => x).ToArray();
-            _maxTime = results.Max(r => r.TimeMs);
+            _maxTime = results.Max(r => r.TimeMs) / 1000.0;
 
             var grid = new double[_nValues.Length, _mValues.Length];
 
@@ -111,14 +111,14 @@ namespace Algorithms.GUI.Views
                 }
             };
 
-            _maxTime = results.Max(r => r.TimeMs);
+            _maxTime = results.Max(r => r.TimeMs) / 1000.0;
             if (_maxTime <= 0) _maxTime = 1.0;
             _pivotHeight = _maxTime / 2.0;
             _hasResults = true;
 
             HeatmapLegendPanel.IsVisible = true;
             SeriesLegendPanel.IsVisible = false;
-            LegendMaxText.Text = $"{_maxTime:F2}";
+            LegendMaxText.Text = _maxTime < 0.01 ? $"{_maxTime:F4}" : $"{_maxTime:F2}";
             LegendMinText.Text = "0";
 
             RecomputeDefaultZoomAndReset();
@@ -164,7 +164,7 @@ namespace Algorithms.GUI.Views
                     if (i >= 0 && j >= 0)
                     {
                         grid[i, j] = r.TimeMs;
-                        if (r.TimeMs > maxTime) maxTime = r.TimeMs;
+                        if (r.TimeMs / 1000.0 > maxTime) maxTime = r.TimeMs / 1000.0;
                     }
                 }
 
@@ -527,14 +527,16 @@ namespace Algorithms.GUI.Views
 
                 string valueText = value switch
                 {
-                    < 1 => $"{value:F2}",
-                    < 10 => $"{value:F1}",
-                    _ => $"{value:F0}"
+                    < 0.001 => $"{value:F4}",
+                    < 0.01  => $"{value:F3}",
+                    < 0.1   => $"{value:F2}",
+                    < 1     => $"{value:F1}",
+                    _       => $"{value:F0}"
                 };
 
                 var label = new TextBlock
                 {
-                    Text = $"{valueText} мс",
+                    Text = $"{valueText} с",
                     FontSize = 10,
                     Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
                 };
@@ -545,7 +547,7 @@ namespace Algorithms.GUI.Views
 
             var axisTitle = new TextBlock
             {
-                Text = "Время (мс)",
+                Text = "Время (с)",
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
