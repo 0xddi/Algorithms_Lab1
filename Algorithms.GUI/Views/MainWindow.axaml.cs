@@ -35,8 +35,6 @@ public partial class MainWindow : Window
     public List<HistorySession> CurrentLoadedSessions { get; set; } = new();
     public ObservableCollection<AlgorithmTaskItem> AlgorithmItems { get; } = new();
     
-    private double[] _lastInputData = Array.Empty<double>();
-
     public MainWindow()
     {
         InitializeComponent();
@@ -390,7 +388,6 @@ public partial class MainWindow : Window
         }
 
         double[] inputData = GenerateDataFromUI();
-        _lastInputData = inputData;
         if (selectedTasks.Count > 0 && inputData.Length == 0)
         {
             StatusText.Text = "Ошибка ввода параметров данных! Проверьте параметры.";
@@ -608,11 +605,7 @@ public partial class MainWindow : Window
                 var task = groupTasks[i];
                 string colorHex = CombinedPalette[i % CombinedPalette.Length];
 
-                double[] xs = task.Results
-                    .Select(r => r.N - 1 < _lastInputData.Length
-                        ? _lastInputData[r.N - 1]
-                        : (double)r.N)
-                    .ToArray();
+                double[] xs = task.Results.Select(r => (double)r.N).ToArray();
                 double[] ys = ToDisplayUnit(task.Results.Select(r => r.TimeMs).ToArray(), unit);
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
@@ -705,11 +698,7 @@ public partial class MainWindow : Window
             };
             legendPanel.Children.Add(titleText);
 
-            double[] xs = task.Results
-                .Select(r => r.N - 1 < _lastInputData.Length
-                    ? _lastInputData[r.N - 1]
-                    : (double)r.N)
-                .ToArray();
+            double[] xs = task.Results.Select(r => (double)r.N).ToArray();
             var unit = PickDisplayUnit(task.IsStepMeasurement, task.Results.Select(r => r.TimeMs));
             double[] ys = ToDisplayUnit(task.Results.Select(r => r.TimeMs).ToArray(), unit);
 
