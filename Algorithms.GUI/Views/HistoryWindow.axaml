@@ -5,30 +5,10 @@
         x:CompileBindings="False"
         Title="Управление историей (Кэш БД)" Width="500" Height="600"
         WindowStartupLocation="CenterOwner"
-        RequestedThemeVariant="Dark"
-        Background="#1E1E1E"
-        Foreground="#D4D4D4">
+        Background="{DynamicResource AppWindowBackground}"
+        Foreground="{DynamicResource AppText}">
 
-    <Window.Resources>
-        <Color x:Key="SystemAccentColor">#3794FF</Color>
-
-        <!-- Кнопки -->
-        <SolidColorBrush x:Key="ButtonBackground" Color="#333337"/>
-        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3E3E42"/>
-        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#45454A"/>
-        <SolidColorBrush x:Key="ButtonForeground" Color="#D4D4D4"/>
-        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3E3E42"/>
-        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#5A5A5F"/>
-
-        <!-- Элементы списка -->
-        <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#2A2D2E"/>
-        <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#094771"/>
-        <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#0B5A8F"/>
-        <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="#0B5A8F"/>
-        <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#0B5A8F"/>
-        <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="#D4D4D4"/>
-        <SolidColorBrush x:Key="ListBoxItemForegroundSelectedPointerOver" Color="#D4D4D4"/>
-    </Window.Resources>
+    <!-- Цвета берутся из Themes/Palette.axaml (тёмная и светлая темы) -->
 
     <Window.Styles>
         <Style Selector="Button">
@@ -42,34 +22,45 @@
             <Setter Property="Padding" Value="10,4"/>
         </Style>
 
-        <!-- Опасное действие -->
+        <!-- Опасная кнопка -->
         <Style Selector="Button.danger">
-            <Style.Resources>
-                <SolidColorBrush x:Key="ButtonBackground" Color="#3A2323"/>
-                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#4A2B2B"/>
-                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#5A3333"/>
-                <SolidColorBrush x:Key="ButtonForeground" Color="#F48771"/>
-                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFA898"/>
-                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFA898"/>
-                <SolidColorBrush x:Key="ButtonBorderBrush" Color="#5A3333"/>
-                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#8A4A4A"/>
-            </Style.Resources>
+            <Setter Property="Background" Value="{DynamicResource DangerButtonBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerButtonForeground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonBorder}"/>
+        </Style>
+
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerButtonBackgroundPointerOver}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerButtonForegroundPointerOver}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonBorderPointerOver}"/>
+        </Style>
+
+        <Style Selector="Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerButtonBackgroundPressed}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerButtonForegroundPointerOver}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonBorderPressed}"/>
+        </Style>
+
+        <Style Selector="Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerButtonBackgroundDisabled}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerButtonForegroundDisabled}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonBorderDisabled}"/>
         </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto, *, Auto" Margin="16">
         <TextBlock Grid.Row="0" Text="Сохраненные сессии" FontSize="18" FontWeight="SemiBold"
-                   Margin="0,0,0,12" Foreground="#D4D4D4"/>
+                   Margin="0,0,0,12" Foreground="{DynamicResource AppText}"/>
 
         <!-- Обязательно Name="HistoryListBox" или x:Name="HistoryListBox" -->
         <ListBox Grid.Row="1" x:Name="HistoryListBox" SelectionMode="Multiple"
-                 Background="#252526" BorderBrush="#3E3E42" BorderThickness="1"
+                 Background="{DynamicResource AppPanelBackground}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
                  CornerRadius="12" Padding="6">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="models:HistorySession">
                     <StackPanel Margin="4,6" Spacing="2">
-                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Foreground="#5AA9FF" FontSize="14"/>
-                        <TextBlock Text="{Binding AlgorithmsSummary}" FontSize="12" Foreground="#9D9D9D" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Foreground="{DynamicResource AppLink}" FontSize="14"/>
+                        <TextBlock Text="{Binding AlgorithmsSummary}" FontSize="12" Foreground="{DynamicResource AppTextMuted}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -80,7 +71,7 @@
                     <MenuItem Header="Загрузить для сравнения (выбранные)" Click="MenuLoadCompare_Click"/>
                     <MenuItem Header="Сравнить с уже загруженными данными" Click="MenuCompareWithLoaded_Click"/>
                     <Separator/>
-                    <MenuItem Header="Удалить выбранные данные" Click="MenuDelete_Click" Foreground="#F48771"/>
+                    <MenuItem Header="Удалить выбранные данные" Click="MenuDelete_Click" Foreground="{DynamicResource AppDanger}"/>
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>
