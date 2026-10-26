@@ -19,6 +19,7 @@ public static class ThemeColors
     public static string Border => Pick("#3E3E42", "#D4D4D8");
     public static string Text => Pick("#D4D4D4", "#1F1F1F");
     public static string TextSecondary => Pick("#CCCCCC", "#3B3B3B");
+    public static string TextMuted => Pick("#9D9D9D", "#616161");
     public static string Axes => Pick("#B4B4B4", "#5F5F5F");
     public static string GridLine => Pick("#333337", "#E6E6E9");
     public static string Accent => Pick("#3794FF", "#0066CC");

@@ -13,11 +13,13 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="/Themes/Palette.axaml"/>
+                <ResourceInclude Source="/Themes/Icons.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="/Themes/Controls.axaml"/>
     </Application.Styles>
 </Application>

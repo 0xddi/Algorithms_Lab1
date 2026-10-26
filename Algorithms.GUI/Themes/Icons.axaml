@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Vector icons (24x24, drawn with a stroke). Paths are from Lucide (https://lucide.dev, ISC license).
+        Use them in a Path with Stroke and StrokeThickness, Fill left empty.
+    -->
+    <StreamGeometry x:Key="IconEye">M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0 M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0</StreamGeometry>
+    <StreamGeometry x:Key="IconEyeOff">M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49 M14.084 14.158a3 3 0 0 1-4.242-4.242 M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143 M2 2 L22 22</StreamGeometry>
+    <StreamGeometry x:Key="IconChart">M3 3 L3 19 A2 2 0 0 0 5 21 L21 21 M18 17 L18 9 M13 17 L13 5 M8 17 L8 14</StreamGeometry>
+</ResourceDictionary>

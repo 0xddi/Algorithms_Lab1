@@ -83,11 +83,52 @@ public partial class MainWindow : Window
 
     private static void ApplyPlotTheme(AvaPlot plotControl)
     {
-        plotControl.Plot.FigureBackground.Color = ThemeColors.Plot(ThemeColors.PanelBackground);
-        plotControl.Plot.DataBackground.Color = ThemeColors.Plot(ThemeColors.PlotDataBackground);
-        plotControl.Plot.Axes.Color(ThemeColors.Plot(ThemeColors.Axes));
-        plotControl.Plot.Grid.MajorLineColor = ThemeColors.Plot(ThemeColors.GridLine);
+        var plot = plotControl.Plot;
+        plot.FigureBackground.Color = ThemeColors.Plot(ThemeColors.PanelBackground);
+        plot.DataBackground.Color = ThemeColors.Plot(ThemeColors.PlotDataBackground);
+        plot.Axes.Color(ThemeColors.Plot(ThemeColors.Axes));
+
+        // Data first: thin, low-contrast grid and no top/right frame lines competing with the series
+        plot.Grid.MajorLineColor = ThemeColors.Plot(ThemeColors.GridLine);
+        plot.Grid.MajorLineWidth = 1;
+        plot.Axes.Top.FrameLineStyle.Width = 0;
+        plot.Axes.Right.FrameLineStyle.Width = 0;
+
+        // Text hierarchy: the title in the main text color, axis labels a step quieter
+        plot.Axes.Title.Label.ForeColor = ThemeColors.Plot(ThemeColors.Text);
+        plot.Axes.Title.Label.FontSize = 15;
+        plot.Axes.Title.Label.Bold = true;
+        plot.Axes.Bottom.Label.ForeColor = ThemeColors.Plot(ThemeColors.TextSecondary);
+        plot.Axes.Left.Label.ForeColor = ThemeColors.Plot(ThemeColors.TextSecondary);
+        plot.Axes.Bottom.Label.FontSize = 13;
+        plot.Axes.Left.Label.FontSize = 13;
+        plot.Axes.Bottom.Label.Bold = false;
+        plot.Axes.Left.Label.Bold = false;
+
+        // A little air around the data so the first and last points are not glued to the axes
+        plot.Axes.Margins(0.03, 0.08);
     }
+
+    // Marker shapes for series on the combined chart: a second cue besides color
+    private static readonly ScottPlot.MarkerShape[] SeriesMarkers =
+    {
+        ScottPlot.MarkerShape.FilledCircle, ScottPlot.MarkerShape.FilledSquare, ScottPlot.MarkerShape.FilledTriangleUp,
+        ScottPlot.MarkerShape.FilledDiamond, ScottPlot.MarkerShape.FilledTriangleDown, ScottPlot.MarkerShape.OpenCircle,
+        ScottPlot.MarkerShape.OpenSquare, ScottPlot.MarkerShape.OpenDiamond
+    };
+
+    /// <summary>
+    /// Adds a chart card to its panel and plays the entrance animation (skipped if the OS disables animations).
+    /// </summary>
+    private void AddCard(Panel host, Control card)
+    {
+        host.Children.Add(card);
+        Motion.FadeIn(card, MatrixPanelHost.Children.Count + PlotsPanel.Children.Count - 1);
+        UpdateEmptyState();
+    }
+
+    private void UpdateEmptyState() =>
+        EmptyStatePanel.IsVisible = MatrixPanelHost.Children.Count == 0 && PlotsPanel.Children.Count == 0;
 
     private void InitializeTasksList()
     {
@@ -255,7 +296,7 @@ public partial class MainWindow : Window
         stack.Children.Add(control);
 
         border.Child = stack;
-        MatrixPanelHost.Children.Add(border);
+        AddCard(MatrixPanelHost, border);
         // Если галочка установлена — генерируем теоретическую поверхность
         if (showApprox)
         {
@@ -337,7 +378,7 @@ public partial class MainWindow : Window
         plotControl.Refresh();
 
         border.Child = WrapWithZoomToolbar(plotControl, plotControl);
-        PlotsPanel.Children.Add(border);
+        AddCard(PlotsPanel, border);
         _activePlots.Add(plotControl);
     }
 
@@ -448,6 +489,7 @@ public partial class MainWindow : Window
         StatusText.Text = "Выполняются замеры...";
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
+        UpdateEmptyState();
         _activePlots.Clear();
 
         _benchmarker = new Benchmarker(inputData);
@@ -588,6 +630,7 @@ public partial class MainWindow : Window
     {
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
+        UpdateEmptyState();
         _activePlots.Clear();
 
         bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
@@ -628,7 +671,7 @@ public partial class MainWindow : Window
 
             legendPanel.Children.Add(new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
+                Text = "ЛЕГЕНДА", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = ThemeColors.Brush(ThemeColors.TextMuted),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             });
 
@@ -645,7 +688,8 @@ public partial class MainWindow : Window
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
-                scatter.MarkerSize = 3;
+                scatter.MarkerSize = 5;
+                scatter.MarkerShape = SeriesMarkers[i % SeriesMarkers.Length];
                 scatter.Color = ScottPlot.Color.FromHex(colorHex);
 
                 legendPanel.Children.Add(CreateCustomLegendItem(plotControl, scatter, task.Name, colorHex));
@@ -676,7 +720,7 @@ public partial class MainWindow : Window
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
-            PlotsPanel.Children.Add(border);
+            AddCard(PlotsPanel, border);
             _activePlots.Add(plotControl);
         }
     }
@@ -685,6 +729,7 @@ public partial class MainWindow : Window
     {
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
+        UpdateEmptyState();
         _activePlots.Clear();
 
         bool showApprox = ShowApproxCheckBox.IsChecked ?? true;
@@ -725,7 +770,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
+                Text = "ЛЕГЕНДА", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = ThemeColors.Brush(ThemeColors.TextMuted),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -738,6 +783,7 @@ public partial class MainWindow : Window
             {
                 var empiricalScatter = plotControl.Plot.Add.Scatter(xs, ys);
                 empiricalScatter.LineWidth = 2;
+                empiricalScatter.MarkerSize = 4;
                 empiricalScatter.Color = ThemeColors.Plot(ThemeColors.Accent);
 
                 legendPanel.Children.Add(
@@ -774,7 +820,7 @@ public partial class MainWindow : Window
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
-            PlotsPanel.Children.Add(border);
+            AddCard(PlotsPanel, border);
             _activePlots.Add(plotControl);
         }
         
@@ -787,39 +833,27 @@ public partial class MainWindow : Window
         var panel = new StackPanel
             { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Avalonia.Thickness(0, 4), VerticalAlignment = VerticalAlignment.Center };
 
-        // Кнопка-глазик
+        // Кнопка-глазик: иконка показывает, видна ли серия
+        var eyeIcon = new Avalonia.Controls.Shapes.Path { Data = (Geometry)FindIcon("IconEye") };
         var eyeButton = new Avalonia.Controls.Primitives.ToggleButton
         {
             IsChecked = true, // По умолчанию график отображается
-            Content = "👁",
-            Width = 28,
-            Height = 28,
-            Padding = new Avalonia.Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Background = Brushes.Transparent,
-            Foreground = ThemeColors.Brush(ThemeColors.TextSecondary),
-            FontSize = 14,
-            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+            Content = eyeIcon,
+            VerticalAlignment = VerticalAlignment.Center
         };
+        eyeButton.Classes.Add("icon-toggle");
+        ToolTip.SetTip(eyeButton, "Показать или скрыть серию");
 
-        eyeButton.Click += (s, e) =>
+        // Образец линии: цвет + стиль (сплошная/пунктир) + маркер, чтобы серии различались не только цветом
+        var swatch = CreateLegendSwatch(scatter, colorHex);
+
+        eyeButton.IsCheckedChanged += (_, _) =>
         {
             bool isVisible = eyeButton.IsChecked ?? false;
             scatter.IsVisible = isVisible;
-            eyeButton.Opacity = isVisible ? 1.0 : 0.4;
+            eyeIcon.Data = (Geometry)FindIcon(isVisible ? "IconEye" : "IconEyeOff");
+            swatch.Opacity = isVisible ? 1.0 : 0.4;
             plotControl.Refresh();
-        };
-
-        // Цветовой индикатор
-        var colorBox = new Border
-        {
-            Width = 14,
-            Height = 14,
-            Background = SolidColorBrush.Parse(colorHex),
-            CornerRadius = new Avalonia.CornerRadius(3),
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
         };
 
         // Текст (Название алгоритма / MSE аппроксимации)
@@ -833,11 +867,62 @@ public partial class MainWindow : Window
             MaxWidth = 130
         };
 
+        eyeButton.IsCheckedChanged += (_, _) => textBlock.Opacity = eyeButton.IsChecked == true ? 1.0 : 0.55;
+
         panel.Children.Add(eyeButton);
-        panel.Children.Add(colorBox);
+        panel.Children.Add(swatch);
         panel.Children.Add(textBlock);
 
         return panel;
+    }
+
+    private static object FindIcon(string key) =>
+        Avalonia.Application.Current!.FindResource(key) ?? throw new InvalidOperationException($"Icon '{key}' not found");
+
+    private static Control CreateLegendSwatch(ScottPlot.Plottables.Scatter scatter, string colorHex)
+    {
+        var brush = ThemeColors.Brush(colorHex);
+        var canvas = new Canvas { Width = 20, Height = 14, VerticalAlignment = VerticalAlignment.Center };
+
+        var line = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(0, 7),
+            EndPoint = new Avalonia.Point(20, 7),
+            Stroke = brush,
+            StrokeThickness = 2
+        };
+        if (scatter.LineStyle.Pattern.Equals(ScottPlot.LinePattern.Dashed))
+            line.StrokeDashArray = new Avalonia.Collections.AvaloniaList<double> { 2, 1.5 };
+        canvas.Children.Add(line);
+
+        if (scatter.MarkerSize > 0)
+        {
+            // Same shape as on the chart, centered on the line (7x7 box at x=6.5, y=3.5)
+            var (geometry, filled) = scatter.MarkerShape switch
+            {
+                ScottPlot.MarkerShape.FilledSquare => ("M0,0 H7 V7 H0 Z", true),
+                ScottPlot.MarkerShape.OpenSquare => ("M0,0 H7 V7 H0 Z", false),
+                ScottPlot.MarkerShape.FilledTriangleUp => ("M3.5,0 L7,7 H0 Z", true),
+                ScottPlot.MarkerShape.FilledTriangleDown => ("M0,0 H7 L3.5,7 Z", true),
+                ScottPlot.MarkerShape.FilledDiamond => ("M3.5,0 L7,3.5 L3.5,7 L0,3.5 Z", true),
+                ScottPlot.MarkerShape.OpenDiamond => ("M3.5,0 L7,3.5 L3.5,7 L0,3.5 Z", false),
+                ScottPlot.MarkerShape.OpenCircle => ("M0,3.5 A3.5,3.5 0 1 1 7,3.5 A3.5,3.5 0 1 1 0,3.5 Z", false),
+                _ => ("M0,3.5 A3.5,3.5 0 1 1 7,3.5 A3.5,3.5 0 1 1 0,3.5 Z", true)
+            };
+
+            var marker = new Avalonia.Controls.Shapes.Path
+            {
+                Data = Geometry.Parse(geometry),
+                Fill = filled ? brush : ThemeColors.Brush(ThemeColors.PanelBackground),
+                Stroke = brush,
+                StrokeThickness = filled ? 0 : 1.5
+            };
+            Canvas.SetLeft(marker, 6.5);
+            Canvas.SetTop(marker, 3.5);
+            canvas.Children.Add(marker);
+        }
+
+        return canvas;
     }
 
     /// <summary>
@@ -898,8 +983,14 @@ public partial class MainWindow : Window
             };
             text.Classes.Add("muted");
             panel.Children.Add(text);
-            panel.Children.Add(CreateToolButton("+", zoomIn));
-            panel.Children.Add(CreateToolButton("-", zoomOut));
+            // Icon-like "+"/"−" buttons get a tooltip naming the action
+            string axisName = label.TrimEnd(':');
+            var zoomInButton = CreateToolButton("+", zoomIn);
+            var zoomOutButton = CreateToolButton("−", zoomOut);
+            ToolTip.SetTip(zoomInButton, $"Увеличить ({axisName})");
+            ToolTip.SetTip(zoomOutButton, $"Уменьшить ({axisName})");
+            panel.Children.Add(zoomInButton);
+            panel.Children.Add(zoomOutButton);
         }
 
         var resetButton = new Button
@@ -1003,6 +1094,7 @@ public partial class MainWindow : Window
     {
         PlotsPanel.Children.Clear();
         MatrixPanelHost.Children.Clear();
+        UpdateEmptyState();
         _activePlots.Clear();
 
         if (sessionsToCompare == null || !sessionsToCompare.Any())
@@ -1122,7 +1214,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
+                Text = "ЛЕГЕНДА", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = ThemeColors.Brush(ThemeColors.TextMuted),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -1152,6 +1244,8 @@ public partial class MainWindow : Window
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
+                scatter.MarkerSize = isShared ? 5 : 4;
+                if (isShared) scatter.MarkerShape = SeriesMarkers[i % SeriesMarkers.Length];
 
                 string colorHex = isShared ? colors[i % colors.Length] : ThemeColors.Accent;
                 scatter.Color = ScottPlot.Color.FromHex(colorHex);
@@ -1190,7 +1284,7 @@ public partial class MainWindow : Window
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
-            PlotsPanel.Children.Add(border);
+            AddCard(PlotsPanel, border);
             _activePlots.Add(plotControl);
         }
 
@@ -1225,7 +1319,7 @@ public partial class MainWindow : Window
         stack.Children.Add(control);
 
         border.Child = stack;
-        MatrixPanelHost.Children.Add(border);
+        AddCard(MatrixPanelHost, border);
         control.SetMultipleResults(seriesList);
     }
 
@@ -1249,6 +1343,10 @@ public partial class MainWindow : Window
     private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries, string unit = "мс")
     {
         ToolTip.SetShowDelay(plotControl, 0);
+
+        // Ring around the hovered point, so it is clear which point the tooltip describes.
+        // Created on first hover: an extra plottable added earlier would affect auto-scaling.
+        ScottPlot.Plottables.Marker? highlight = null;
 
         plotControl.PointerMoved += (sender, e) =>
         {
@@ -1303,13 +1401,44 @@ public partial class MainWindow : Window
 
                 ToolTip.SetTip(plotControl, text);
                 ToolTip.SetIsOpen(plotControl, true);
+                ShowHighlight(closestX, closestY);
             }
             else
             {
                 ToolTip.SetIsOpen(plotControl, false);
+                HideHighlight();
             }
         };
 
-        plotControl.PointerExited += (sender, e) => ToolTip.SetIsOpen(plotControl, false);
+        plotControl.PointerExited += (sender, e) =>
+        {
+            ToolTip.SetIsOpen(plotControl, false);
+            HideHighlight();
+        };
+
+        void ShowHighlight(double x, double y)
+        {
+            if (highlight is null)
+            {
+                highlight = plotControl.Plot.Add.Marker(x, y, ScottPlot.MarkerShape.OpenCircle, 14,
+                    ThemeColors.Plot(ThemeColors.Text));
+                highlight.MarkerLineWidth = 2;
+            }
+            else if (highlight.IsVisible && highlight.X == x && highlight.Y == y)
+            {
+                return; // same point: no redraw
+            }
+
+            highlight.Location = new ScottPlot.Coordinates(x, y);
+            highlight.IsVisible = true;
+            plotControl.Refresh();
+        }
+
+        void HideHighlight()
+        {
+            if (highlight is not { IsVisible: true }) return;
+            highlight.IsVisible = false;
+            plotControl.Refresh();
+        }
     }
 }

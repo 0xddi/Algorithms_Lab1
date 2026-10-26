@@ -38,17 +38,17 @@
                         <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
 
                             <!-- Кнопка-глазик -->
-                            <ToggleButton IsChecked="{Binding IsVisible}"
-                                          Content="👁"
-                                          Width="28" Height="28" Padding="0"
-                                          HorizontalContentAlignment="Center"
-                                          VerticalContentAlignment="Center"
+                            <ToggleButton Classes="icon-toggle" IsChecked="{Binding IsVisible}"
                                           VerticalAlignment="Center"
-                                          Background="Transparent"
-                                          Foreground="{DynamicResource AppTextSecondary}"
-                                          FontSize="12"
-                                          Cursor="Hand"
-                                          Click="LegendEyeButton_Click"/>
+                                          ToolTip.Tip="Показать или скрыть серию"
+                                          Click="LegendEyeButton_Click">
+                                <Panel>
+                                    <Path Data="{StaticResource IconEye}"
+                                          IsVisible="{Binding $parent[ToggleButton].IsChecked}"/>
+                                    <Path Data="{StaticResource IconEyeOff}"
+                                          IsVisible="{Binding !$parent[ToggleButton].IsChecked}"/>
+                                </Panel>
+                            </ToggleButton>
                             <Border Width="12" Height="12" CornerRadius="3" Background="{Binding Brush}"
                                     VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AppText}" FontSize="11"
