@@ -1240,7 +1240,10 @@ public partial class MainWindow : Window
                 if (!sessionAlgoResults.Any()) continue;
 
                 double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
-                double[] ys = ToDisplayUnit(sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray(), unit);
+                // Step-based algorithms store their measurement in StepCount, not in ElapsedTimeMs
+                double[] ys = isStepMeasurement
+                    ? sessionAlgoResults.Select(r => (double)(r.StepCount ?? 0)).ToArray()
+                    : ToDisplayUnit(sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray(), unit);
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;

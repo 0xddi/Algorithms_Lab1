@@ -45,6 +45,9 @@ public class Benchmarker
             var cachedData = useCache 
                 ? db.Results
                     .Where(r => r.AlgorithmName == task.Name)
+                    // Step rows saved before the StepCount fix have no step count: treat them as missing
+                    // so they are measured again instead of being read back as zeros
+                    .Where(r => !task.IsStepMeasurement || r.StepCount != null)
                     .GroupBy(r => r.N)
                     .ToDictionary(g => g.Key, g => 
                     {
@@ -82,7 +85,8 @@ public class Benchmarker
                             RunNumber = 0,
                             ElapsedTimeMs = task.IsStepMeasurement ? 0 : avgTimeMs,
                             ExperimentDate = experimentDate,
-                            StepCount = null 
+                            // For step-based tasks the measurement is the step count itself
+                            StepCount = task.IsStepMeasurement ? (long)Math.Round(avgTimeMs) : null
                         });
                     }
 
