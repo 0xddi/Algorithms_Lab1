@@ -1,0 +1,67 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Shared control styles for all windows: interaction feedback and motion.
+        Motion tokens: 150 ms for color changes, 100 ms for press feedback.
+    -->
+
+    <!-- Clickable controls show a hand cursor -->
+    <Style Selector="Button, ToggleButton, CheckBox, RadioButton, ToggleSwitch">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <!-- Buttons: smooth color change on hover/press instead of an instant snap -->
+    <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- Subtle press feedback: the button shrinks slightly and springs back on release -->
+    <Style Selector="Button">
+        <Setter Property="RenderTransform" Value="scale(1)"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.97)"/>
+    </Style>
+
+    <!-- Icon toggle (legend "eye"): no filled background in either state, icon shows the state -->
+    <Style Selector="ToggleButton.icon-toggle">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="ToggleButton.icon-toggle /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.icon-toggle:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="ToggleButton.icon-toggle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppBorder}"/>
+    </Style>
+    <Style Selector="ToggleButton.icon-toggle Path">
+        <Setter Property="Stroke" Value="{DynamicResource AppTextSecondary}"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="StrokeLineCap" Value="Round"/>
+        <Setter Property="StrokeJoin" Value="Round"/>
+        <Setter Property="Stretch" Value="Uniform"/>
+    </Style>
+</Styles>

@@ -137,12 +137,13 @@
         </Style>
     </Window.Styles>
 
-    <Grid ColumnDefinitions="380, *">
+    <Grid ColumnDefinitions="392, *">
 
         <!-- ЛЕВАЯ ПАНЕЛЬ: НАСТРОЙКИ -->
         <Border Grid.Column="0" Background="{DynamicResource AppPanelBackground}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="0,0,1,0" Padding="12">
             <Grid RowDefinitions="*, Auto">
-                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
+                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                              Padding="0,0,12,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -299,7 +300,19 @@
 
         <!-- ПРАВАЯ ПАНЕЛЬ: ГРАФИКИ -->
         <Grid Grid.Column="1">
-            <ScrollViewer Margin="12" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
+            <!-- Пустое состояние: видно, пока нет ни одного графика -->
+            <StackPanel Name="EmptyStatePanel" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Spacing="10" MaxWidth="360">
+                <Path Data="{StaticResource IconChart}" Width="44" Height="44" Stretch="Uniform"
+                      Stroke="{DynamicResource AppTextMuted}" StrokeThickness="1.6"
+                      StrokeLineCap="Round" StrokeJoin="Round" HorizontalAlignment="Center" />
+                <TextBlock Text="Графиков пока нет" Classes="section" FontSize="16"
+                           HorizontalAlignment="Center" />
+                <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center"
+                           Text="Выберите алгоритмы слева и нажмите «Запустить вычисления» — здесь появятся графики времени работы и их теоретическая аппроксимация." />
+            </StackPanel>
+
+            <ScrollViewer Margin="12,12,0,12" Padding="0,0,12,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="12">
 
                     <!-- 1. Матрицы (3D поверхности) -->

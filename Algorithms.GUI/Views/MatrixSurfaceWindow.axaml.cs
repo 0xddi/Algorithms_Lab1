@@ -132,7 +132,7 @@ namespace Algorithms.GUI.Views
             if (sender is ToggleButton btn && btn.DataContext is SeriesLegendItem item)
             {
                 bool isVisible = btn.IsChecked ?? false;
-                btn.Opacity = isVisible ? 1.0 : 0.4;
+                btn.Opacity = isVisible ? 1.0 : 0.7; // the crossed-out eye already shows the state
                 item.IsVisible = isVisible;
                 item.OnVisibilityChanged?.Invoke(isVisible);
             }
