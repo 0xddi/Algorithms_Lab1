@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Algorithms.Core.MatrixAlgorithms;
 using Algorithms.GUI.Models;
+using Algorithms.GUI.Themes;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -509,7 +510,7 @@ namespace Algorithms.GUI.Views
             {
                 StartPoint = new Point(axisBase.sx, axisBase.sy),
                 EndPoint = new Point(axisTop.sx, axisTop.sy),
-                Stroke = new SolidColorBrush(Color.FromRgb(0x37, 0x94, 0xFF)),
+                Stroke = ThemeColors.Brush(ThemeColors.Accent),
                 StrokeThickness = 1.4
             };
             DrawCanvas.Children.Add(axisLine);
@@ -523,7 +524,7 @@ namespace Algorithms.GUI.Views
                 {
                     StartPoint = new Point(p.sx - 5, p.sy),
                     EndPoint = new Point(p.sx + 5, p.sy),
-                    Stroke = new SolidColorBrush(Color.FromRgb(0xB4, 0xB4, 0xB4)),
+                    Stroke = ThemeColors.Brush(ThemeColors.Axes),
                     StrokeThickness = 1
                 };
                 DrawCanvas.Children.Add(tick);
@@ -540,7 +541,7 @@ namespace Algorithms.GUI.Views
                 {
                     Text = $"{valueText} {unit.Symbol}",
                     FontSize = 10,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
+                    Foreground = ThemeColors.Brush(ThemeColors.Text)
                 };
                 Canvas.SetLeft(label, p.sx + 7);
                 Canvas.SetTop(label, p.sy - 7);
@@ -552,7 +553,7 @@ namespace Algorithms.GUI.Views
                 Text = $"Время ({unit.Symbol})",
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
+                Foreground = ThemeColors.Brush(ThemeColors.Text)
             };
             Canvas.SetLeft(axisTitle, axisTop.sx + 7);
             Canvas.SetTop(axisTitle, axisTop.sy - 22);
@@ -564,7 +565,7 @@ namespace Algorithms.GUI.Views
             var label = new TextBlock
             {
                 Text = text,
-                Foreground = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                Foreground = ThemeColors.Brush(ThemeColors.TextSecondary),
                 FontSize = 10
             };
             Canvas.SetLeft(label, pos.sx);

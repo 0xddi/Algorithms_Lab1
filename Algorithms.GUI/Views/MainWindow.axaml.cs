@@ -15,7 +15,9 @@ using Algorithms.Core.MatrixAlgorithms;
 using Algorithms.Core.PolynomialAlgorithms;
 using Algorithms.Core.PowFunctionAlgorithms;
 using Algorithms.GUI.Models;
+using Algorithms.GUI.Themes;
 using Avalonia.Controls.Primitives;
+using Avalonia.Styling;
 using ScottPlot.Avalonia;
 
 namespace Algorithms.GUI.Views;
@@ -40,6 +42,51 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = this;
         InitializeTasksList();
+
+        SyncThemeToggle();
+        if (Avalonia.Application.Current is { } app)
+        {
+            app.ActualThemeVariantChanged += OnThemeChanged;
+            Closed += (_, _) => app.ActualThemeVariantChanged -= OnThemeChanged;
+        }
+    }
+
+    // ===== Тема оформления =====
+
+    private bool _syncingThemeToggle;
+
+    private void SyncThemeToggle()
+    {
+        _syncingThemeToggle = true;
+        ThemeToggle.IsChecked = ThemeColors.IsLight;
+        _syncingThemeToggle = false;
+    }
+
+    private void ThemeToggle_IsCheckedChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_syncingThemeToggle || Avalonia.Application.Current is not { } app) return;
+
+        var variant = ThemeToggle.IsChecked == true ? ThemeVariant.Light : ThemeVariant.Dark;
+        app.RequestedThemeVariant = variant;
+        ThemeSettings.Save(variant);
+    }
+
+    /// <summary>
+    /// Fires for both the toggle and a system theme change (while following the system).
+    /// XAML updates itself via DynamicResource; charts are built in code, so they are re-rendered.
+    /// </summary>
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        SyncThemeToggle();
+        RerenderCharts();
+    }
+
+    private static void ApplyPlotTheme(AvaPlot plotControl)
+    {
+        plotControl.Plot.FigureBackground.Color = ThemeColors.Plot(ThemeColors.PanelBackground);
+        plotControl.Plot.DataBackground.Color = ThemeColors.Plot(ThemeColors.PlotDataBackground);
+        plotControl.Plot.Axes.Color(ThemeColors.Plot(ThemeColors.Axes));
+        plotControl.Plot.Grid.MajorLineColor = ThemeColors.Plot(ThemeColors.GridLine);
     }
 
     private void InitializeTasksList()
@@ -191,8 +238,8 @@ public partial class MainWindow : Window
             Height = 550,
             Margin = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(8),
-            Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+            Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+            BorderBrush = ThemeColors.Brush(ThemeColors.Border),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(12)
         };
@@ -223,13 +270,13 @@ public partial class MainWindow : Window
                 {
                     Name = "Эксперимент",
                     Results = results,
-                    Color = Color.Parse("#3794FF")
+                    Color = Color.Parse(ThemeColors.Accent)
                 },
                 new MatrixSeries
                 {
                     Name = $"Теория (MSE: {mse:E2})",
                     Results = approxResults,
-                    Color = Color.Parse("#40FFB35C") // Первые символы "40" задают высокую прозрачность
+                    Color = Color.Parse("#40" + ThemeColors.Theory[1..]) // Первые символы "40" задают высокую прозрачность
                 }
             };
 
@@ -261,18 +308,15 @@ public partial class MainWindow : Window
         {
             HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(8),
-            Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+            Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+            BorderBrush = ThemeColors.Brush(ThemeColors.Border),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(12)
         };
 
         var plotControl = new AvaPlot
             { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-        plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-        plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
-        plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
+        ApplyPlotTheme(plotControl);
 
         var heatmap = plotControl.Plot.Add.Heatmap(data);
         heatmap.Colormap = new ScottPlot.Colormaps.Viridis();
@@ -536,12 +580,6 @@ public partial class MainWindow : Window
             RenderIndividualCharts(tasks);
     }
 
-    private static readonly string[] CombinedPalette =
-    {
-        "#3794FF", "#FF7EB6", "#5EE0C0", "#B794F6", "#8BD450", "#FF8A65", "#FFD54F",
-        "#4DD0E1", "#F06292", "#AED581", "#9575CD", "#E57373", "#4FC3F7", "#DCE775", "#BA68C8"
-    };
-
     /// <summary>
     /// Draws all selected algorithms on a shared axis. Time-based and step-based
     /// algorithms are measured in different units, so each group gets its own chart.
@@ -563,8 +601,8 @@ public partial class MainWindow : Window
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch, Height = 480, Margin = new Avalonia.Thickness(0),
                 Padding = new Avalonia.Thickness(8),
-                Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+                Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+                BorderBrush = ThemeColors.Brush(ThemeColors.Border),
                 BorderThickness = new Avalonia.Thickness(1),
                 CornerRadius = new Avalonia.CornerRadius(12)
             };
@@ -573,10 +611,7 @@ public partial class MainWindow : Window
 
             var plotControl = new AvaPlot
                 { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
-            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
+            ApplyPlotTheme(plotControl);
 
             Grid.SetColumn(plotControl, 0);
             grid.Children.Add(plotControl);
@@ -593,7 +628,7 @@ public partial class MainWindow : Window
 
             legendPanel.Children.Add(new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             });
 
@@ -603,7 +638,7 @@ public partial class MainWindow : Window
             for (int i = 0; i < groupTasks.Count; i++)
             {
                 var task = groupTasks[i];
-                string colorHex = CombinedPalette[i % CombinedPalette.Length];
+                string colorHex = ThemeColors.Series[i % ThemeColors.Series.Length];
 
                 double[] xs = task.Results.Select(r => (double)r.N).ToArray();
                 double[] ys = ToDisplayUnit(task.Results.Select(r => r.TimeMs).ToArray(), unit);
@@ -660,8 +695,8 @@ public partial class MainWindow : Window
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
                 Padding = new Avalonia.Thickness(8),
-                Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+                Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+                BorderBrush = ThemeColors.Brush(ThemeColors.Border),
                 BorderThickness = new Avalonia.Thickness(1),
                 CornerRadius = new Avalonia.CornerRadius(12)
             };
@@ -672,10 +707,7 @@ public partial class MainWindow : Window
             var plotControl = new AvaPlot
                 { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
 
-            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
-            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
+            ApplyPlotTheme(plotControl);
 
             Grid.SetColumn(plotControl, 0);
             grid.Children.Add(plotControl);
@@ -693,7 +725,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -706,10 +738,10 @@ public partial class MainWindow : Window
             {
                 var empiricalScatter = plotControl.Plot.Add.Scatter(xs, ys);
                 empiricalScatter.LineWidth = 2;
-                empiricalScatter.Color = ScottPlot.Color.FromHex("#3794FF");
+                empiricalScatter.Color = ThemeColors.Plot(ThemeColors.Accent);
 
                 legendPanel.Children.Add(
-                    CreateCustomLegendItem(plotControl, empiricalScatter, "Эксперимент", "#3794FF"));
+                    CreateCustomLegendItem(plotControl, empiricalScatter, "Эксперимент", ThemeColors.Accent));
 
                 if (showApprox)
                 {
@@ -717,11 +749,11 @@ public partial class MainWindow : Window
                     var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                     approxScatter.LineWidth = 2;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
-                    approxScatter.Color = ScottPlot.Color.FromHex("#FFB35C");
+                    approxScatter.Color = ThemeColors.Plot(ThemeColors.Theory);
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"Теория (MSE: {mse:E2}{MseUnitSuffix(unit)})", "#FFB35C"));
+                        $"Теория (MSE: {mse:E2}{MseUnitSuffix(unit)})", ThemeColors.Theory));
                 }
 
                 var seriesData = new List<(double[], double[], string)> { (xs, ys, "Эксперимент") };
@@ -767,7 +799,7 @@ public partial class MainWindow : Window
             VerticalContentAlignment = VerticalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Background = Brushes.Transparent,
-            Foreground = SolidColorBrush.Parse("#CCCCCC"),
+            Foreground = ThemeColors.Brush(ThemeColors.TextSecondary),
             FontSize = 14,
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
         };
@@ -794,7 +826,7 @@ public partial class MainWindow : Window
         var textBlock = new TextBlock
         {
             Text = name,
-            Foreground = SolidColorBrush.Parse("#D4D4D4"),
+            Foreground = ThemeColors.Brush(ThemeColors.Text),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             FontSize = 12,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
@@ -813,7 +845,9 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void ShowApprox_Click(object? sender, RoutedEventArgs e)
+    private void ShowApprox_Click(object? sender, RoutedEventArgs e) => RerenderCharts();
+
+    private void RerenderCharts()
     {
         if (CurrentLoadedSessions.Any())
         {
@@ -925,7 +959,7 @@ public partial class MainWindow : Window
         var title = new TextBlock
         {
             Text = label,
-            Foreground = SolidColorBrush.Parse("#D4D4D4"),
+            Foreground = ThemeColors.Brush(ThemeColors.Text),
             FontWeight = Avalonia.Media.FontWeight.SemiBold,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -980,7 +1014,7 @@ public partial class MainWindow : Window
         var allResults = sessionsToCompare.SelectMany(s => (IEnumerable<ExperimentResult>)s.Results).ToList();
         var uniqueAlgorithms = allResults.Select(r => r.AlgorithmName).Distinct().ToList();
 
-        var colors = new[] { "#3794FF", "#FF7EB6", "#FFB35C", "#5EE0C0", "#B794F6", "#8BD450", "#FF8A65" };
+        var colors = ThemeColors.Series;
 
         foreach (var algoName in uniqueAlgorithms)
         {
@@ -1037,7 +1071,7 @@ public partial class MainWindow : Window
                             // Устанавливаем значение альфа-канала 128 (50% прозрачности) для базового цвета
                             Color = seriesList.Count > 1
                                 ? Color.FromArgb(64, s.Color.R, s.Color.G, s.Color.B)
-                                : Color.Parse("#FFB35C")
+                                : Color.Parse(ThemeColors.Theory)
                         });
                     }
 
@@ -1059,8 +1093,8 @@ public partial class MainWindow : Window
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch, Height = 360, Margin = new Avalonia.Thickness(0),
                 Padding = new Avalonia.Thickness(8),
-                Background = SolidColorBrush.Parse("#252526"),
-                BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+                Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+                BorderBrush = ThemeColors.Brush(ThemeColors.Border),
                 BorderThickness = new Avalonia.Thickness(1),
                 CornerRadius = new Avalonia.CornerRadius(12)
             };
@@ -1071,10 +1105,7 @@ public partial class MainWindow : Window
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch
             };
-            plotControl.Plot.FigureBackground.Color = ScottPlot.Color.FromHex("#252526");
-            plotControl.Plot.DataBackground.Color = ScottPlot.Color.FromHex("#1E1E1E");
-            plotControl.Plot.Axes.Color(ScottPlot.Color.FromHex("#B4B4B4"));
-            plotControl.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHex("#333337");
+            ApplyPlotTheme(plotControl);
 
             Grid.SetColumn(plotControl, 0);
             grid.Children.Add(plotControl);
@@ -1091,7 +1122,7 @@ public partial class MainWindow : Window
 
             var titleText = new TextBlock
             {
-                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = SolidColorBrush.Parse("#D4D4D4"),
+                Text = "Легенда:", FontWeight = FontWeight.Bold, Foreground = ThemeColors.Brush(ThemeColors.Text),
                 Margin = new Avalonia.Thickness(0, 0, 0, 5)
             };
             legendPanel.Children.Add(titleText);
@@ -1122,7 +1153,7 @@ public partial class MainWindow : Window
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
 
-                string colorHex = isShared ? colors[i % colors.Length] : "#3794FF";
+                string colorHex = isShared ? colors[i % colors.Length] : ThemeColors.Accent;
                 scatter.Color = ScottPlot.Color.FromHex(colorHex);
 
                 string legendText = isShared ? $"№ {i + 1}" : "Эксперимент";
@@ -1136,7 +1167,7 @@ public partial class MainWindow : Window
                     approxScatter.LineWidth = 1.5f;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
 
-                    string approxColorHex = isShared ? colors[i % colors.Length] : "#FFB35C";
+                    string approxColorHex = isShared ? colors[i % colors.Length] : ThemeColors.Theory;
                     approxScatter.Color = ScottPlot.Color.FromHex(approxColorHex);
                     approxScatter.MarkerSize = 0;
 
@@ -1177,8 +1208,8 @@ public partial class MainWindow : Window
             Height = 550,
             Margin = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(8),
-            Background = SolidColorBrush.Parse("#252526"),
-            BorderBrush = SolidColorBrush.Parse("#3E3E42"),
+            Background = ThemeColors.Brush(ThemeColors.PanelBackground),
+            BorderBrush = ThemeColors.Brush(ThemeColors.Border),
             BorderThickness = new Avalonia.Thickness(1),
             CornerRadius = new Avalonia.CornerRadius(12)
         };

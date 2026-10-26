@@ -1,0 +1,161 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        App palette. Every color has a role; the same keys exist in both variants,
+        so XAML uses {DynamicResource ...} and switches automatically with the theme.
+        Code-behind colors (ScottPlot, 3D surface) live in Themes/ThemeColors.cs and must match.
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- ===== Тёмная тема (VS Code Dark) ===== -->
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="AppWindowBackground" Color="#1E1E1E"/>
+            <SolidColorBrush x:Key="AppPanelBackground" Color="#252526"/>
+            <SolidColorBrush x:Key="AppCardBackground" Color="#2D2D30"/>
+            <SolidColorBrush x:Key="AppBorder" Color="#3E3E42"/>
+            <SolidColorBrush x:Key="AppText" Color="#D4D4D4"/>
+            <SolidColorBrush x:Key="AppTextSecondary" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="AppTextMuted" Color="#9D9D9D"/>
+            <SolidColorBrush x:Key="AppAccent" Color="#3794FF"/>
+            <SolidColorBrush x:Key="AppLink" Color="#5AA9FF"/>
+            <SolidColorBrush x:Key="AppDanger" Color="#F48771"/>
+            <SolidColorBrush x:Key="AppProgressTrack" Color="#3E3E42"/>
+
+            <!-- Главная кнопка (Button.primary) -->
+            <SolidColorBrush x:Key="PrimaryButtonBackground" Color="#3794FF"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundPointerOver" Color="#5AA9FF"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundPressed" Color="#2B7CD6"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundDisabled" Color="#33363B"/>
+            <SolidColorBrush x:Key="PrimaryButtonForeground" Color="#1E1E1E"/>
+            <SolidColorBrush x:Key="PrimaryButtonForegroundDisabled" Color="#6B6B6B"/>
+
+            <!-- Опасная кнопка (Button.danger) -->
+            <SolidColorBrush x:Key="DangerButtonBackground" Color="#3A2323"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundPointerOver" Color="#4A2B2B"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundPressed" Color="#5A3333"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundDisabled" Color="#2A2A2C"/>
+            <SolidColorBrush x:Key="DangerButtonForeground" Color="#F48771"/>
+            <SolidColorBrush x:Key="DangerButtonForegroundPointerOver" Color="#FFA898"/>
+            <SolidColorBrush x:Key="DangerButtonForegroundDisabled" Color="#6B6B6B"/>
+            <SolidColorBrush x:Key="DangerButtonBorder" Color="#5A3333"/>
+            <SolidColorBrush x:Key="DangerButtonBorderPointerOver" Color="#8A4A4A"/>
+            <SolidColorBrush x:Key="DangerButtonBorderPressed" Color="#F48771"/>
+            <SolidColorBrush x:Key="DangerButtonBorderDisabled" Color="#3E3E42"/>
+
+            <!-- Системный акцент Fluent: чекбоксы, радио, прогресс-бар -->
+            <Color x:Key="SystemAccentColor">#3794FF</Color>
+            <Color x:Key="SystemAccentColorLight1">#5AA9FF</Color>
+            <Color x:Key="SystemAccentColorLight2">#7FBBFF</Color>
+            <Color x:Key="SystemAccentColorLight3">#A5CEFF</Color>
+            <Color x:Key="SystemAccentColorDark1">#2B7CD6</Color>
+            <Color x:Key="SystemAccentColorDark2">#2166B3</Color>
+            <Color x:Key="SystemAccentColorDark3">#194F8C</Color>
+
+            <!-- Кнопки -->
+            <SolidColorBrush x:Key="ButtonBackground" Color="#333337"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3E3E42"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#45454A"/>
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#2A2A2C"/>
+            <SolidColorBrush x:Key="ButtonForeground" Color="#D4D4D4"/>
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#6B6B6B"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3E3E42"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#5A5A5F"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#3794FF"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#3E3E42"/>
+
+            <!-- Текстовые поля -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="#1E1E1E"/>
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#252526"/>
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#1E1E1E"/>
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#3E3E42"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#5A5A5F"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#3794FF"/>
+            <SolidColorBrush x:Key="TextControlForeground" Color="#D4D4D4"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6B6B6B"/>
+
+            <!-- Элементы списка -->
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#2A2D2E"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#094771"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#0B5A8F"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="#0B5A8F"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#0B5A8F"/>
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="#D4D4D4"/>
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelectedPointerOver" Color="#D4D4D4"/>
+        </ResourceDictionary>
+
+        <!-- ===== Светлая тема (светлая IDE) ===== -->
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="AppWindowBackground" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="AppPanelBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="AppCardBackground" Color="#F8F8F8"/>
+            <SolidColorBrush x:Key="AppBorder" Color="#D4D4D8"/>
+            <SolidColorBrush x:Key="AppText" Color="#1F1F1F"/>
+            <SolidColorBrush x:Key="AppTextSecondary" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="AppTextMuted" Color="#616161"/>
+            <SolidColorBrush x:Key="AppAccent" Color="#0066CC"/>
+            <SolidColorBrush x:Key="AppLink" Color="#0066CC"/>
+            <SolidColorBrush x:Key="AppDanger" Color="#B3261E"/>
+            <SolidColorBrush x:Key="AppProgressTrack" Color="#E1E1E6"/>
+
+            <SolidColorBrush x:Key="PrimaryButtonBackground" Color="#0066CC"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundPointerOver" Color="#0059B3"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundPressed" Color="#004C99"/>
+            <SolidColorBrush x:Key="PrimaryButtonBackgroundDisabled" Color="#E1E1E6"/>
+            <SolidColorBrush x:Key="PrimaryButtonForeground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="PrimaryButtonForegroundDisabled" Color="#A0A0A0"/>
+
+            <SolidColorBrush x:Key="DangerButtonBackground" Color="#FDECEA"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundPointerOver" Color="#FAD9D5"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundPressed" Color="#F5C2BC"/>
+            <SolidColorBrush x:Key="DangerButtonBackgroundDisabled" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="DangerButtonForeground" Color="#B3261E"/>
+            <SolidColorBrush x:Key="DangerButtonForegroundPointerOver" Color="#8C1D18"/>
+            <SolidColorBrush x:Key="DangerButtonForegroundDisabled" Color="#A0A0A0"/>
+            <SolidColorBrush x:Key="DangerButtonBorder" Color="#F0B8B2"/>
+            <SolidColorBrush x:Key="DangerButtonBorderPointerOver" Color="#E08A80"/>
+            <SolidColorBrush x:Key="DangerButtonBorderPressed" Color="#B3261E"/>
+            <SolidColorBrush x:Key="DangerButtonBorderDisabled" Color="#E1E1E6"/>
+
+            <Color x:Key="SystemAccentColor">#0066CC</Color>
+            <Color x:Key="SystemAccentColorLight1">#1A75D1</Color>
+            <Color x:Key="SystemAccentColorLight2">#4D94DB</Color>
+            <Color x:Key="SystemAccentColorLight3">#80B3E6</Color>
+            <Color x:Key="SystemAccentColorDark1">#0059B3</Color>
+            <Color x:Key="SystemAccentColorDark2">#004C99</Color>
+            <Color x:Key="SystemAccentColorDark3">#003F80</Color>
+
+            <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#F0F0F2"/>
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#E4E4E8"/>
+            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="ButtonForeground" Color="#1F1F1F"/>
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A0A0A0"/>
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#D4D4D8"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#B4B4BA"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#0066CC"/>
+            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#E1E1E6"/>
+
+            <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FAFAFA"/>
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#C8C8CE"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#9E9EA6"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#0066CC"/>
+            <SolidColorBrush x:Key="TextControlForeground" Color="#1F1F1F"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#8A8A8A"/>
+
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#F0F0F2"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#DCEBFA"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#CCE0F7"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="#CCE0F7"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#CCE0F7"/>
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="#1F1F1F"/>
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelectedPointerOver" Color="#1F1F1F"/>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
