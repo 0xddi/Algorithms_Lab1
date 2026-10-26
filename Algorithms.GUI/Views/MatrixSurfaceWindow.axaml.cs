@@ -118,7 +118,9 @@ namespace Algorithms.GUI.Views
 
             HeatmapLegendPanel.IsVisible = true;
             SeriesLegendPanel.IsVisible = false;
-            LegendMaxText.Text = $"{_maxTime:F2}";
+            var unit = TimeUnit.Pick(_maxTime);
+            LegendUnitText.Text = $"T,{unit.Symbol}";
+            LegendMaxText.Text = $"{unit.FromMs(_maxTime):F2}";
             LegendMinText.Text = "0";
 
             RecomputeDefaultZoomAndReset();
@@ -499,6 +501,7 @@ namespace Algorithms.GUI.Views
             if (_maxTime <= 0) return;
 
             const int tickCount = 4;
+            var unit = TimeUnit.Pick(_maxTime);
             var axisBase = project(rEnd, cEnd, 0);
             var axisTop = project(rEnd, cEnd, _maxTime);
 
@@ -525,16 +528,17 @@ namespace Algorithms.GUI.Views
                 };
                 DrawCanvas.Children.Add(tick);
 
-                string valueText = value switch
+                double displayValue = unit.FromMs(value);
+                string valueText = displayValue switch
                 {
-                    < 1 => $"{value:F2}",
-                    < 10 => $"{value:F1}",
-                    _ => $"{value:F0}"
+                    < 1 => $"{displayValue:F2}",
+                    < 10 => $"{displayValue:F1}",
+                    _ => $"{displayValue:F0}"
                 };
 
                 var label = new TextBlock
                 {
-                    Text = $"{valueText} мс",
+                    Text = $"{valueText} {unit.Symbol}",
                     FontSize = 10,
                     Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
                 };
@@ -545,7 +549,7 @@ namespace Algorithms.GUI.Views
 
             var axisTitle = new TextBlock
             {
-                Text = "Время (мс)",
+                Text = $"Время ({unit.Symbol})",
                 FontSize = 10,
                 FontWeight = FontWeight.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))

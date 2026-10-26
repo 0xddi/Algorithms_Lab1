@@ -601,6 +601,7 @@ public partial class MainWindow : Window
             });
 
             var seriesData = new List<(double[], double[], string)>();
+            var unit = PickDisplayUnit(isStep, groupTasks.SelectMany(t => t.Results).Select(r => r.TimeMs));
 
             for (int i = 0; i < groupTasks.Count; i++)
             {
@@ -612,7 +613,7 @@ public partial class MainWindow : Window
                         ? _lastInputData[r.N - 1]
                         : (double)r.N)
                     .ToArray();
-                double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+                double[] ys = ToDisplayUnit(task.Results.Select(r => r.TimeMs).ToArray(), unit);
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
@@ -633,16 +634,16 @@ public partial class MainWindow : Window
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"{task.Name}: теория (MSE: {mse:E1})", colorHex));
+                        $"{task.Name}: теория (MSE: {mse:E1}{MseUnitSuffix(unit)})", colorHex));
                     seriesData.Add((xs, yApprox, $"{task.Name}: теория"));
                 }
             }
 
-            AttachHoverTooltip(plotControl, seriesData, isStep ? "шагов" : "мс");
+            AttachHoverTooltip(plotControl, seriesData, ValueUnitText(unit));
 
             plotControl.Plot.Title(isStep ? "Сравнение алгоритмов (шаги)" : "Сравнение алгоритмов (время)");
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel(isStep ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.YLabel(YAxisLabel(unit));
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();
 
@@ -709,7 +710,8 @@ public partial class MainWindow : Window
                     ? _lastInputData[r.N - 1]
                     : (double)r.N)
                 .ToArray();
-            double[] ys = task.Results.Select(r => r.TimeMs).ToArray();
+            var unit = PickDisplayUnit(task.IsStepMeasurement, task.Results.Select(r => r.TimeMs));
+            double[] ys = ToDisplayUnit(task.Results.Select(r => r.TimeMs).ToArray(), unit);
 
             if (xs.Length > 0 && ys.Length > 0)
             {
@@ -730,7 +732,7 @@ public partial class MainWindow : Window
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"Теория (MSE: {mse:E2})", "#FFB35C"));
+                        $"Теория (MSE: {mse:E2}{MseUnitSuffix(unit)})", "#FFB35C"));
                 }
 
                 var seriesData = new List<(double[], double[], string)> { (xs, ys, "Эксперимент") };
@@ -740,15 +742,14 @@ public partial class MainWindow : Window
                     seriesData.Add((xs, yApprox, "Теория"));
                 }
 
-                string unit = task.IsStepMeasurement ? "шагов" : "мс";
-                AttachHoverTooltip(plotControl, seriesData, unit);
+                AttachHoverTooltip(plotControl, seriesData, ValueUnitText(unit));
 
                 plotControl.Plot.Axes.AutoScale();
             }
 
             plotControl.Plot.Title(task.Name);
             plotControl.Plot.XLabel("Размер массива (N)");
-            plotControl.Plot.YLabel(task.IsStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
+            plotControl.Plot.YLabel(YAxisLabel(unit));
             plotControl.Refresh();
 
             border.Child = WrapWithZoomToolbar(grid, plotControl);
@@ -1112,6 +1113,10 @@ public partial class MainWindow : Window
 
             var seriesData = new List<(double[], double[], string)>();
 
+            bool isStepMeasurement = AlgorithmItems.FirstOrDefault(a => a.Name == algoName)?.Task?.IsStepMeasurement ?? false;
+            // One unit for all sessions so they stay comparable on the same axis
+            var unit = PickDisplayUnit(isStepMeasurement, algoAllResults.Select(r => r.ElapsedTimeMs));
+
             for (int i = 0; i < sessionsToCompare.Count; i++)
             {
                 var session = sessionsToCompare[i];
@@ -1123,7 +1128,7 @@ public partial class MainWindow : Window
                 if (!sessionAlgoResults.Any()) continue;
 
                 double[] xs = sessionAlgoResults.Select(r => (double)r.N).ToArray();
-                double[] ys = sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray();
+                double[] ys = ToDisplayUnit(sessionAlgoResults.Select(r => r.ElapsedTimeMs).ToArray(), unit);
 
                 var scatter = plotControl.Plot.Add.Scatter(xs, ys);
                 scatter.LineWidth = 2;
@@ -1146,22 +1151,20 @@ public partial class MainWindow : Window
                     approxScatter.Color = ScottPlot.Color.FromHex(approxColorHex);
                     approxScatter.MarkerSize = 0;
 
-                    string approxLegendText = isShared ? $"Теория №{i + 1} (MSE: {mse:E1})" : $"Теория (MSE: {mse:E1})";
+                    string mseText = $"MSE: {mse:E1}{MseUnitSuffix(unit)}";
+                    string approxLegendText = isShared ? $"Теория №{i + 1} ({mseText})" : $"Теория ({mseText})";
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter, approxLegendText,
                         approxColorHex));
                     seriesData.Add((xs, yApprox, isShared ? $"Теория №{i + 1}" : "Теория"));
                 }
             }
 
-            bool isStepMeasurement = AlgorithmItems.FirstOrDefault(a => a.Name == algoName)?.Task?.IsStepMeasurement ?? false;
-            
-            string unit = isStepMeasurement ? "шагов" : "мс";
-            AttachHoverTooltip(plotControl, seriesData, unit);
+            AttachHoverTooltip(plotControl, seriesData, ValueUnitText(unit));
 
             plotControl.Plot.Title(algoName, size: null);
             plotControl.Plot.XLabel("Размер массива (N)");
-            
-            plotControl.Plot.YLabel(isStepMeasurement ? "Количество операций (шаги)" : "Время (мс)");
+
+            plotControl.Plot.YLabel(YAxisLabel(unit));
 
             plotControl.Plot.Axes.AutoScale();
             plotControl.Refresh();
@@ -1205,6 +1208,23 @@ public partial class MainWindow : Window
         MatrixPanelHost.Children.Add(border);
         control.SetMultipleResults(seriesList);
     }
+
+    // ===== Единицы измерения на графиках =====
+    // Step-based tasks keep their raw step counts, so their unit is null.
+
+    private static TimeUnit? PickDisplayUnit(bool isStepMeasurement, IEnumerable<double> valuesMs) =>
+        isStepMeasurement ? null : TimeUnit.Pick(valuesMs.DefaultIfEmpty(0).Max());
+
+    private static double[] ToDisplayUnit(double[] valuesMs, TimeUnit? unit) =>
+        unit?.FromMs(valuesMs) ?? valuesMs;
+
+    private static string YAxisLabel(TimeUnit? unit) =>
+        unit is null ? "Количество операций (шаги)" : $"Время ({unit.Symbol})";
+
+    private static string ValueUnitText(TimeUnit? unit) => unit?.Symbol ?? "шагов";
+
+    // MSE is computed from the displayed values, so it is measured in the squared display unit
+    private static string MseUnitSuffix(TimeUnit? unit) => unit is null ? "" : $" {unit.Symbol}²";
 
     private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries, string unit = "мс")
     {
