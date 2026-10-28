@@ -235,6 +235,25 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Средняя относительная ошибка аппроксимации (MAPE) в процентах: mean(|y - y_approx| / |y|) * 100.
+    /// Не зависит от единицы измерения, поэтому графики в нс и в с дают одинаковый процент.
+    /// Точки с y = 0 пропускаются (деление на ноль).
+    /// </summary>
+    private static double ApproximationErrorPercent(IReadOnlyList<double> ys, IReadOnlyList<double> yApprox)
+    {
+        double sum = 0;
+        int count = 0;
+        for (int i = 0; i < ys.Count; i++)
+        {
+            if (Math.Abs(ys[i]) < 1e-12) continue;
+            sum += Math.Abs(ys[i] - yApprox[i]) / Math.Abs(ys[i]);
+            count++;
+        }
+
+        return count > 0 ? sum / count * 100 : 0;
+    }
+
+    /// <summary>
     /// Теоретическое число операций для наивного умножения A(n×m) на B(m×n): n*m*n = n²·m
     /// </summary>
     private static double GetMatrixTheoreticalComplexity(int n, int m) => (double)n * n * m;
@@ -304,6 +323,8 @@ public partial class MainWindow : Window
             var approxResults = results
                 .Select(r => new MatrixBenchmarkResult(r.N, r.M, c * GetMatrixTheoreticalComplexity(r.N, r.M)))
                 .ToList();
+            double errorPercent = ApproximationErrorPercent(
+                results.Select(r => r.TimeMs).ToArray(), approxResults.Select(r => r.TimeMs).ToArray());
 
             var seriesList = new List<MatrixSeries>
             {
@@ -315,7 +336,7 @@ public partial class MainWindow : Window
                 },
                 new MatrixSeries
                 {
-                    Name = $"Теория (MSE: {mse:E2})",
+                    Name = $"Теория (MSE: {mse:E2}, {ErrorPercentText(errorPercent)})",
                     Results = approxResults,
                     Color = Color.Parse("#40" + ThemeColors.Theory[1..]) // Первые символы "40" задают высокую прозрачность
                 }
@@ -367,8 +388,11 @@ public partial class MainWindow : Window
         string title = "Умножение матриц (n×m)" + titleSuffix;
         if (ShowApproxCheckBox.IsChecked ?? true)
         {
-            var (_, mse) = FitMatrixApproximation(results);
-            title += $" (MSE: {mse:E2})";
+            var (c, mse) = FitMatrixApproximation(results);
+            double errorPercent = ApproximationErrorPercent(
+                results.Select(r => r.TimeMs).ToArray(),
+                results.Select(r => c * GetMatrixTheoreticalComplexity(r.N, r.M)).ToArray());
+            title += $" (MSE: {mse:E2}, {ErrorPercentText(errorPercent)})";
         }
 
         plotControl.Plot.Title(title);
@@ -699,6 +723,7 @@ public partial class MainWindow : Window
                 {
                     // Same color as the experiment, dashed, so the pair is easy to match by eye
                     var (_, mse, yApprox) = FitApproximation(xs, ys, task.Name);
+                    double errorPercent = ApproximationErrorPercent(ys, yApprox);
                     var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                     approxScatter.LineWidth = 1.5f;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
@@ -706,7 +731,7 @@ public partial class MainWindow : Window
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"{task.Name}: теория (MSE: {mse:E1}{MseUnitSuffix(unit)})", colorHex));
+                        $"{task.Name}: теория (MSE: {mse:E1}{MseUnitSuffix(unit)}, {ErrorPercentText(errorPercent)})", colorHex));
                     seriesData.Add((xs, yApprox, $"{task.Name}: теория"));
                 }
             }
@@ -792,6 +817,7 @@ public partial class MainWindow : Window
                 if (showApprox)
                 {
                     var (c, mse, yApprox) = FitApproximation(xs, ys, task.Name);
+                    double errorPercent = ApproximationErrorPercent(ys, yApprox);
                     var approxScatter = plotControl.Plot.Add.Scatter(xs, yApprox);
                     approxScatter.LineWidth = 2;
                     approxScatter.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
@@ -799,7 +825,7 @@ public partial class MainWindow : Window
                     approxScatter.MarkerSize = 0;
 
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter,
-                        $"Теория (MSE: {mse:E2}{MseUnitSuffix(unit)})", ThemeColors.Theory));
+                        $"Теория (MSE: {mse:E2}{MseUnitSuffix(unit)}, {ErrorPercentText(errorPercent)})", ThemeColors.Theory));
                 }
 
                 var seriesData = new List<(double[], double[], string)> { (xs, ys, "Эксперимент") };
@@ -931,6 +957,20 @@ public partial class MainWindow : Window
     /// <param name="sender"></param>
     /// <param name="e"></param>
     private void ShowApprox_Click(object? sender, RoutedEventArgs e) => RerenderCharts();
+
+    // Order matches the ComboBox items; null is "Авто"
+    private static readonly TimeUnit?[] TimeUnitOptions =
+    {
+        null, TimeUnit.Nanoseconds, TimeUnit.Microseconds, TimeUnit.Milliseconds, TimeUnit.Seconds
+    };
+
+    private void TimeUnitComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        // sender, not the named field: the event can fire while XAML is still loading
+        int index = (sender as ComboBox)?.SelectedIndex ?? 0;
+        TimeUnit.Selected = index >= 0 && index < TimeUnitOptions.Length ? TimeUnitOptions[index] : null;
+        RerenderCharts();
+    }
 
     private void RerenderCharts()
     {
@@ -1268,7 +1308,8 @@ public partial class MainWindow : Window
                     approxScatter.Color = ScottPlot.Color.FromHex(approxColorHex);
                     approxScatter.MarkerSize = 0;
 
-                    string mseText = $"MSE: {mse:E1}{MseUnitSuffix(unit)}";
+                    string mseText = $"MSE: {mse:E1}{MseUnitSuffix(unit)}, " +
+                                     ErrorPercentText(ApproximationErrorPercent(ys, yApprox));
                     string approxLegendText = isShared ? $"Теория №{i + 1} ({mseText})" : $"Теория ({mseText})";
                     legendPanel.Children.Add(CreateCustomLegendItem(plotControl, approxScatter, approxLegendText,
                         approxColorHex));
@@ -1330,7 +1371,7 @@ public partial class MainWindow : Window
     // Step-based tasks keep their raw step counts, so their unit is null.
 
     private static TimeUnit? PickDisplayUnit(bool isStepMeasurement, IEnumerable<double> valuesMs) =>
-        isStepMeasurement ? null : TimeUnit.Pick(valuesMs.DefaultIfEmpty(0).Max());
+        isStepMeasurement ? null : TimeUnit.Resolve(valuesMs.DefaultIfEmpty(0).Max());
 
     private static double[] ToDisplayUnit(double[] valuesMs, TimeUnit? unit) =>
         unit?.FromMs(valuesMs) ?? valuesMs;
@@ -1342,6 +1383,8 @@ public partial class MainWindow : Window
 
     // MSE is computed from the displayed values, so it is measured in the squared display unit
     private static string MseUnitSuffix(TimeUnit? unit) => unit is null ? "" : $" {unit.Symbol}²";
+
+    private static string ErrorPercentText(double errorPercent) => $"ошибка: {errorPercent:F1}%";
 
     private void AttachHoverTooltip(AvaPlot plotControl, List<(double[] xs, double[] ys, string name)> dataSeries, string unit = "мс")
     {

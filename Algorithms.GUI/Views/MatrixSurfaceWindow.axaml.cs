@@ -119,7 +119,7 @@ namespace Algorithms.GUI.Views
 
             HeatmapLegendPanel.IsVisible = true;
             SeriesLegendPanel.IsVisible = false;
-            var unit = TimeUnit.Pick(_maxTime);
+            var unit = TimeUnit.Resolve(_maxTime);
             LegendUnitText.Text = $"T,{unit.Symbol}";
             LegendMaxText.Text = $"{unit.FromMs(_maxTime):F2}";
             LegendMinText.Text = "0";
@@ -502,7 +502,7 @@ namespace Algorithms.GUI.Views
             if (_maxTime <= 0) return;
 
             const int tickCount = 4;
-            var unit = TimeUnit.Pick(_maxTime);
+            var unit = TimeUnit.Resolve(_maxTime);
             var axisBase = project(rEnd, cEnd, 0);
             var axisTop = project(rEnd, cEnd, _maxTime);
 

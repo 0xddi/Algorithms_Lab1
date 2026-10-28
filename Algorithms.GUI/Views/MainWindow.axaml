@@ -268,6 +268,19 @@
                             <TextBlock Name="StatusText" Text="Ожидание запуска..." Classes="muted"
                                        TextWrapping="Wrap" />
 
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Grid.Column="0" Text="Единица времени" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppTextSecondary}" />
+                                <ComboBox Name="TimeUnitComboBox" Grid.Column="1" Width="110" SelectedIndex="0"
+                                          SelectionChanged="TimeUnitComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="Авто" />
+                                    <ComboBoxItem Content="нс" />
+                                    <ComboBoxItem Content="мкс" />
+                                    <ComboBoxItem Content="мс" />
+                                    <ComboBoxItem Content="с" />
+                                </ComboBox>
+                            </Grid>
+
                             <CheckBox Name="ShowApproxCheckBox" Content="Показывать теоретическую аппроксимацию"
                                       IsChecked="True" Foreground="{DynamicResource AppTextSecondary}" Click="ShowApprox_Click" />
 

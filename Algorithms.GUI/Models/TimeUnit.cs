@@ -14,6 +14,16 @@ public sealed record TimeUnit(string Symbol, double PerMillisecond)
     public static readonly TimeUnit Seconds = new("с", 0.001);
 
     /// <summary>
+    /// Unit chosen by the user in the UI; null means "pick automatically".
+    /// </summary>
+    public static TimeUnit? Selected { get; set; }
+
+    /// <summary>
+    /// Returns the user's unit if one is selected, otherwise picks one automatically.
+    /// </summary>
+    public static TimeUnit Resolve(double maxMs) => Selected ?? Pick(maxMs);
+
+    /// <summary>
     /// Picks the largest unit in which the maximum value is at least 1,
     /// so chart values read as numbers between 1 and 1000.
     /// </summary>
