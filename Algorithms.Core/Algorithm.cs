@@ -72,10 +72,12 @@ public abstract class Algorithm<TInput>
     }
 
     /// <summary>
-    /// Выполняет серию замеров времени работы алгоритма и возвращает среднее арифметическое значение.
+    /// Runs the algorithm several times and returns the median time. The mean is not used: one run
+    /// interrupted by the OS scheduler or a GC pause can take thousands of times longer and would
+    /// turn the whole point into a spike, while the median ignores up to half of such runs.
     /// </summary>
-    /// <param name="benchCycles">Количество прогонов для усреднения (по умолчанию 5).</param>
-    /// <returns>Среднее время выполнения алгоритма.</returns>
+    /// <param name="benchCycles">Количество прогонов (по умолчанию 5).</param>
+    /// <returns>Медианное время выполнения алгоритма в миллисекундах.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Вызывается, если количество прогонов меньше или равно 0.</exception>
     public double RunBench(int benchCycles)
     {
@@ -88,22 +90,47 @@ public abstract class Algorithm<TInput>
         TInput warmupData = CloneInput(Data);
         ExecuteCore(warmupData);
 
-        double totalSeconds = 0;
+        var runSeconds = new double[benchCycles];
 
         for (int i = 0; i < benchCycles; i++)
         {
             TInput isolatedInput = CloneInput(Data);
+            ScrubBranchPredictor();
 
             long start = Stopwatch.GetTimestamp();
             ExecuteCore(isolatedInput);
             long end = Stopwatch.GetTimestamp();
 
             // Считаем точное время прогона в секундах
-            totalSeconds += (double)(end - start) / Stopwatch.Frequency;
+            runSeconds[i] = (double)(end - start) / Stopwatch.Frequency;
         }
 
-        // Возвращаем среднее время в миллисекундах
-        return (totalSeconds / benchCycles) * 1000.0;
+        Array.Sort(runSeconds);
+        int mid = benchCycles / 2;
+        double medianSeconds = benchCycles % 2 == 1
+            ? runSeconds[mid]
+            : (runSeconds[mid - 1] + runSeconds[mid]) / 2;
+
+        // Возвращаем медианное время в миллисекундах
+        return medianSeconds * 1000.0;
+    }
+
+    private const int ScrubSize = 4096;
+    private static readonly double[] ScrubBuffer = new double[ScrubSize];
+
+    /// <summary>
+    /// The same input is sorted on every cycle, so the CPU branch predictor learns its comparison
+    /// outcomes and small N run several times faster than they should. Sorting fresh random data
+    /// between cycles overwrites that history, so each timed run sees the input as new.
+    /// </summary>
+    private static void ScrubBranchPredictor()
+    {
+        for (int i = 0; i < ScrubSize; i++)
+        {
+            ScrubBuffer[i] = Random.Shared.NextDouble();
+        }
+
+        Array.Sort(ScrubBuffer);
     }
     
     
