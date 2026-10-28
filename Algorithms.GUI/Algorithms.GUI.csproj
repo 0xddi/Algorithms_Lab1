@@ -6,6 +6,9 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaCheckDiagnosticsConflict>false</AvaloniaCheckDiagnosticsConflict>
+        <!-- Compile straight to optimized code: with tiered JIT a method is recompiled mid-benchmark
+             and the measured time suddenly drops several times -->
+        <TieredCompilation>false</TieredCompilation>
     </PropertyGroup>
 
     <ItemGroup>

@@ -24,6 +24,13 @@ public sealed class QuickSortAlgorithm : Algorithm<double[]>
 
     private int Partition(double[] arr, int left, int right)
     {
+        // Median-of-three pivot: on sorted input the last element is the maximum,
+        // which degrades Lomuto partitioning to O(n^2)
+        int mid = left + (right - left) / 2;
+        if (arr[mid] < arr[left]) (arr[mid], arr[left]) = (arr[left], arr[mid]);
+        if (arr[right] < arr[left]) (arr[right], arr[left]) = (arr[left], arr[right]);
+        if (arr[mid] < arr[right]) (arr[mid], arr[right]) = (arr[right], arr[mid]);
+
         double pivot = arr[right];
         int i = left - 1;
         for (int j = left; j < right; j++)
